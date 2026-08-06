@@ -1,6 +1,6 @@
 {
   "name": "seungwan-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "인지부채 해소 도구 grok(diff·스펙·임의 자료를 사람이 진짜로 이해하게) 등 개인 스킬 모음.",
   "author": {
     "name": "OhSeungWan",
@@ -16,6 +16,7 @@
     "korean"
   ],
   "skills": [
-    "./skills/grok"
+    "./skills/grok",
+    "./skills/track"
   ]
 }
