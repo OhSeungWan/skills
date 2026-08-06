@@ -1,0 +1,119 @@
+<!doctype html>
+<!--
+  grok-quiz 자기완결 퀴즈 템플릿.
+
+  채우는 법:
+  - {{TITLE}}      대상 자료를 한 줄로 (예: "grok-spec 승인 게이트 설계").
+  - {{PROFILE}}    "제안형" 또는 "기존형".
+  - {{SOURCE}}     대상 경로/리비전/주제 (예: "skills/grok-spec/SKILL.md").
+  - <article class="q"> 블록을 문항 수만큼 둔다(기본 5개). 각 블록:
+      * <h2> = 질문 줄기
+      * <ol class="opts"> = 선택지 (한 문항 안 모든 <li>는 같은 단어 수)
+      * <details> = 정답+근거 (시도 전까지 접힘). <b> 정답 라벨, <p> 근거 1~2문장.
+  - 큰 자료로 여러 5문항 세트를 냈다면 <section class="set"> 로 묶고 <h1> 세트 제목을 단다.
+  - 못 다룬 영역이 있으면 맨 아래 <footer class="uncovered"> 에 명시(조용한 절삭 금지).
+
+  제약: 외부 참조 0(폰트·CSS·JS·이미지 전부 인라인/시스템). 생성 후
+  scripts/check-self-contained.sh 로 검증한다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 이해도 자가점검</title>
+<style>
+  :root {
+    --bg: #fdfcfa; --fg: #201d1a; --muted: #6b6560;
+    --rule: #e4ded6; --accent: #7a5a3a; --card: #f7f4ef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1816; --fg: #ece7e0; --muted: #a0998f;
+      --rule: #332f2a; --accent: #c9a884; --card: #232019;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: Georgia, "Times New Roman", "Nanum Myeongjo", serif;
+    line-height: 1.6; max-width: 42rem; margin: 0 auto;
+    padding: 3rem 1.4rem 5rem;
+  }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 1.2rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.5rem; line-height: 1.3; margin: 0 0 .4rem; }
+  .meta { color: var(--muted); font-size: .85rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .intro { color: var(--muted); font-size: .95rem; margin-top: 1rem; }
+  .q { margin: 2.4rem 0; padding-top: 1.6rem; border-top: 1px solid var(--rule); }
+  .q:first-of-type { border-top: none; }
+  .q h2 { font-size: 1.08rem; line-height: 1.45; font-weight: 600; margin: 0 0 1rem; }
+  .q h2::before { content: counter(qn) ". "; counter-increment: qn; color: var(--accent); font-weight: 700; }
+  body { counter-reset: qn; }
+  ol.opts { list-style: upper-alpha; padding-left: 1.6rem; margin: 0 0 1.1rem; }
+  ol.opts li { margin: .45rem 0; padding-left: .3rem; }
+  details {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 0 1rem;
+  }
+  summary {
+    cursor: pointer; padding: .7rem 0; font-size: .9rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent);
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸ "; }
+  details[open] summary::before { content: "▾ "; }
+  details[open] { padding-bottom: 1rem; }
+  details b { color: var(--fg); }
+  details p { margin: .5rem 0 0; font-size: .96rem; }
+  footer.uncovered {
+    margin-top: 3rem; padding: 1rem 1.2rem; border-left: 3px solid var(--accent);
+    background: var(--card); color: var(--muted); font-size: .9rem;
+  }
+  @media print {
+    body { max-width: none; }
+    details { border: none; background: none; }
+    details:not([open]) > *:not(summary) { display: revert; }
+    summary { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{TITLE}}</h1>
+  <div class="meta">프로파일: {{PROFILE}} · 대상: {{SOURCE}}</div>
+  <p class="intro">
+    각 문항을 먼저 스스로 답한 뒤 "정답 확인"을 펼치세요. 이 퀴즈는 자가점검 전용이며
+    아무것도 막지 않습니다 — 목적은 점수가 아니라, 이 자료를 진짜로 이해했는지 스스로 아는 것입니다.
+  </p>
+</header>
+
+<!-- ↓ 문항 블록. 문항 수만큼 복제해 채운다. 아래는 채운 예시 하나. -->
+<article class="q">
+  <h2>백오프 설계가 지수 지연에 더해 무작위 jitter 항을 포함하는 이유는?</h2>
+  <ol class="opts">
+    <li>지연을 예측 불가능하게 만들어 보안을 강화하기 위해</li>
+    <li>동시 시작한 클라이언트 재시도를 흩어 몰림을 막으려고</li>
+    <li>클라이언트와 서버 사이 시계 오차를 정확히 보정하려고</li>
+    <li>순수 지수 스케줄보다 평균 대기 시간을 줄이려고</li>
+  </ol>
+  <details>
+    <summary>정답 확인</summary>
+    <b>정답: B.</b>
+    <p>
+      jitter가 없으면 같은 순간 대기를 시작한 모든 클라이언트가 똑같은 지연을 계산해 같은 순간
+      재시도한다 — 백오프가 고치려던 thundering-herd를 더 긴 주기로 재현하는 셈이다. jitter는 각자의
+      대기에 작은 무작위 오프셋을 더해 그 동기화를 깨고, 재시도가 한 스파이크가 아니라 구간에 퍼져
+      도착하게 한다.
+    </p>
+  </details>
+</article>
+<!-- ↑ 문항 블록 끝 -->
+
+<!-- 못 다룬 영역이 있을 때만 (조용한 절삭 금지):
+<footer class="uncovered">
+  이 퀴즈가 다루지 못한 영역: {{UNCOVERED}}.
+</footer>
+-->
+</body>
+</html>

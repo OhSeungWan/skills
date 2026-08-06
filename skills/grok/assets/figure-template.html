@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive Figure</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; font: 15px/1.5 -apple-system, system-ui, sans-serif; padding: 16px;
+    color: #1a1a1a; background: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e8e8e8; background: #1a1a1a; }
+  }
+  .figure { max-width: 640px; margin: 0 auto; }
+  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .stage { border: 1px solid rgba(128,128,128,.4); border-radius: 8px; width: 100%; }
+  .readout { font-variant-numeric: tabular-nums; }
+  button, input[type=range] { font: inherit; }
+</style>
+</head>
+<body>
+<div class="figure">
+  <!-- REPLACE: 제목 + 무엇을 조작하는지 한 줄 -->
+  <h3 id="caption">제목 — 무엇을 조작하는지 한 줄</h3>
+
+  <!-- REPLACE: 무대(SVG/canvas/DOM). 아래는 인라인 SVG 예시. -->
+  <svg class="stage" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" aria-labelledby="caption">
+    <circle id="dot" cx="40" cy="90" r="12" fill="currentColor"></circle>
+  </svg>
+
+  <!-- REPLACE: 핵심 개념을 움직이는 컨트롤 -->
+  <div class="controls">
+    <label>값 <input id="slider" type="range" min="0" max="280" value="0"></label>
+    <span class="readout">x = <span id="val">0</span></span>
+  </div>
+</div>
+<script>
+  // REPLACE: 컨트롤 -> 시각 연결. 독자가 핵심 개념을 "느끼게" 한다.
+  const slider = document.getElementById('slider');
+  const dot = document.getElementById('dot');
+  const val = document.getElementById('val');
+  function render() {
+    const x = Number(slider.value) + 40;
+    dot.setAttribute('cx', x);
+    val.textContent = slider.value;
+  }
+  slider.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>

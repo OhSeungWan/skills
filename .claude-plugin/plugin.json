@@ -1,0 +1,21 @@
+{
+  "name": "seungwan-skills",
+  "version": "0.1.0",
+  "description": "인지부채 해소 도구 grok(diff·스펙·임의 자료를 사람이 진짜로 이해하게) 등 개인 스킬 모음.",
+  "author": {
+    "name": "OhSeungWan",
+    "url": "https://github.com/OhSeungWan"
+  },
+  "repository": "https://github.com/OhSeungWan/skills",
+  "license": "MIT",
+  "keywords": [
+    "grok",
+    "cognitive-debt",
+    "quiz",
+    "handoff",
+    "korean"
+  ],
+  "skills": [
+    "./skills/grok"
+  ]
+}
