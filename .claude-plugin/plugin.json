@@ -1,7 +1,7 @@
 {
   "name": "seungwan-skills",
-  "version": "0.2.0",
-  "description": "인지부채 해소 도구 grok(diff·스펙·임의 자료를 사람이 진짜로 이해하게) 등 개인 스킬 모음.",
+  "version": "0.3.0",
+  "description": "인지부채 해소 도구 grok, 트랙 라이프사이클 track, 반자동 QA 루프 qa — 개인 스킬 모음.",
   "author": {
     "name": "OhSeungWan",
     "url": "https://github.com/OhSeungWan"
@@ -13,10 +13,12 @@
     "cognitive-debt",
     "quiz",
     "handoff",
+    "qa",
     "korean"
   ],
   "skills": [
     "./skills/grok",
-    "./skills/track"
+    "./skills/track",
+    "./skills/qa"
   ]
 }
