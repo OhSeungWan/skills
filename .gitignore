@@ -2,3 +2,10 @@
 CLAUDE.local.md
 CONTEXT.md
 docs/
+
+# Playwright MCP 실행 부산물 (스크린샷·콘솔 로그·스냅샷)
+.playwright-mcp/
+
+# Claude Code 로컬 상태 (공유 설정은 커밋 가능하도록 통째로 무시하지 않는다)
+.claude/settings.local.json
+.claude/worktrees/

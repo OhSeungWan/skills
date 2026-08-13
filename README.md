@@ -58,3 +58,18 @@ agent가 관측할 수 없는 것만 사람이 찍는다 — 다 썼다는 의�
 정적 추적이 실패할 때만 실행·재현이 허용되고, 그때 만든 하네스는 커밋하지 않는다.
 짚기 전에 가설 3~5개를 순위 매긴다. 배치 화면에 걸리는 티켓 이슈·스펙 이슈를 읽어 Figma·API 계약·ADR을 근거로 쓰고, 없으면 없는 대로 간다.
 반복은 스킬 밖 — `/loop 30m /qa fix`. `/loop`는 세션에 묶이므로 크론이 아니다.
+
+## MCP 서버
+
+`.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844`).
+로그인이 필요한 화면을 찍으려면 세션 파일 경로를 환경변수 `PLAYWRIGHT_MCP_STORAGE_STATE`로
+넘긴다 — 머신마다 다르고 토큰이 들어 있으므로 값은 커밋하지 않는다.
+
+```bash
+# 세션 파일 만들기: 헤디드로 한 번 로그인한 뒤 창을 닫으면 저장된다
+npx playwright open --save-storage="$HOME/.config/design-qa/storage-state.json" <URL>
+export PLAYWRIGHT_MCP_STORAGE_STATE="$HOME/.config/design-qa/storage-state.json"
+```
+
+`--isolated` 없이 세션 파일만 주면 **에러 없이 조용히 무시된다**(뷰포트는 먹고 쿠키만 빈다).
+세션은 만료되면 자동 갱신되지 않으므로 위 명령을 다시 돌려 파일을 새로 만든다.
