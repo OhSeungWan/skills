@@ -59,6 +59,24 @@ agent가 관측할 수 없는 것만 사람이 찍는다 — 다 썼다는 의�
 짚기 전에 가설 3~5개를 순위 매긴다. 배치 화면에 걸리는 티켓 이슈·스펙 이슈를 읽어 Figma·API 계약·ADR을 근거로 쓰고, 없으면 없는 대로 간다.
 반복은 스킬 밖 — `/loop 30m /qa fix`. `/loop`는 세션에 묶이므로 크론이 아니다.
 
+### shared-store — 워크트리 공유 문서 스토어
+
+repo 하나의 모든 워크트리가 **커밋되지 않는 개인 문서**(`CONTEXT.md`·`CLAUDE.local.md`·`docs/agents`·`docs/adr` 등)를
+파일 하나로 공유한다. 실체는 `.git/shared-store/` 한 곳이고, 워크트리의 경로들은 그리로 향하는 심링크다.
+경로는 `git rev-parse --git-common-dir`로 계산하므로 설정 파일이 없다. 스토어 자체가 git repo라 개인 문서에도 이력이 남는다.
+
+| 호출 | 시점 | 하는 일 |
+|---|---|---|
+| `/shared-store link` | 새 워크트리·항목 추가 | 스토어 부트스트랩(+`git init`) → 심링크 → ignore 등록 → 검증. 멱등 |
+| `/shared-store doctor` | 문서가 안 보이거나 갈라진 것 같을 때 (인자 없을 때 기본) | 워크트리 전체 × 항목 전체 실측 — `tracked`/`diverged`/`missing`/`exposed` |
+| `/shared-store adopt` | `doctor`가 `tracked`·`diverged`를 낼 때 | 실제 파일을 스토어로 이관 → `git rm --cached` → 재링크. 커밋은 사람 |
+| `/shared-store save` | 스토어 문서를 고친 뒤 | 스토어 커밋. 미푸시 알림, push는 승인 후 |
+| `/shared-store tidy` | 주기적으로 | 고아 파일·죽은 항목·ADR 번호 중복 진단. 실행은 승인 후 |
+
+무엇을 링크할지는 스토어 안 `manifest`가 정한다(`<워크트리 경로>:<스토어 경로>[:gitignore]`) — repo마다
+관례가 달라도 스킬을 고치지 않는다. 실패 모드가 **조용하다**는 게 이 세팅의 핵심 위험이다:
+추적 중인 파일이 하나만 있어도 그 경로 링크가 통째로 skip되고 경고는 스크립트 출력에만 남는다. 그래서 `doctor`가 있다.
+
 ## MCP 서버
 
 `.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844`).
