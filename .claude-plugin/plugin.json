@@ -1,7 +1,7 @@
 {
   "name": "seungwan-skills",
-  "version": "0.7.0",
-  "description": "인지부채 해소 도구 grok, 트랙 라이프사이클 track, 반자동 QA 루프 qa, 시안 대조 design-qa, QA 정답지 갱신 oracle, 워크트리 공유 문서 스토어 shared-store — 개인 스킬 모음.",
+  "version": "0.8.0",
+  "description": "인지부채 해소 도구 grok, 트랙 라이프사이클 track, 무인 티켓 러너 grind, 반자동 QA 루프 qa, 시안 대조 design-qa, QA 정답지 갱신 oracle, 워크트리 공유 문서 스토어 shared-store — 개인 스킬 모음.",
   "author": {
     "name": "OhSeungWan",
     "url": "https://github.com/OhSeungWan"
@@ -17,11 +17,15 @@
     "korean",
     "worktree",
     "symlink",
-    "design-qa"
+    "design-qa",
+    "grind",
+    "unattended",
+    "orca"
   ],
   "skills": [
     "./skills/grok",
     "./skills/track",
+    "./skills/grind",
     "./skills/qa",
     "./skills/oracle",
     "./skills/shared-store",
