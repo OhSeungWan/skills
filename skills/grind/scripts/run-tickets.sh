@@ -6,18 +6,9 @@
 #   .git/matt-context/run-tickets.sh 193
 #   .git/matt-context/run-tickets.sh 193 194 196 212 213
 #
-# repo·통합 브랜치·통합 PR 번호는 전부 현재 체크아웃에서 감지한다 — 트랙별 설정이 없다.
+# 전제·진행상황 보는 자리·실패 읽는 법·함정은 grind 스킬의 SKILL.md 가 정본이다.
+# 아래 주석은 코드가 왜 이 모양인지만 적는다.
 #
-# 무인 실행이라 --dangerously-skip-permissions 로 돈다. 티켓 PR을 열고 통합 브랜치로
-# 머지까지 한다. 최종 base(develop)로는 안 나가므로 되돌리기는 통합 브랜치 reset 범위 안이다.
-#
-# 진행상황:
-#   - Orca 보드 — 워크트리 status 가 in-progress(구현중) → in-review(리뷰중) → completed(구현완료).
-#     스크립트가 in-progress 와 completed 를, 에이전트가 티켓 PR 개설 직후 in-review 를 찍는다.
-#     completed 를 스크립트가 쥐는 이유: 에이전트의 자기신고보다 이슈 close 실측이 믿을 만하다.
-#   - stdout — `##` 마커와 툴 이름만. 원본 이벤트는 ticket-<n>.jsonl.
-#
-# 주입: track-notes.md 에 쓰면 다음 읽기 지점(티켓 시작 / PR 본문 작성 직전)부터 반영된다.
 set -euo pipefail
 
 if [ $# -eq 0 ]; then
@@ -52,7 +43,7 @@ mkdir -p "$LOGDIR"
 echo "repo=$REPO  통합브랜치=$INTEGRATION  통합PR=#$INTEGRATION_PR  티켓=$*"
 echo "로그: $LOGDIR    주입: $NOTES"
 
-# 레포별 검증 게이트. 있으면 프롬프트에 통째로 끼운다 — 이 스크립트를 레포 무관하게 유지하는 장치다.
+# 레포별 검증 게이트. 있으면 프롬프트에 통째로 끼운다.
 if [ -f "$GATES" ]; then
   GATES_TEXT="## 이 레포의 검증 게이트 (정본)
 
@@ -82,13 +73,8 @@ for n in "$@"; do
   git fetch -q origin
 
   # 티켓 브랜치명 = <통합>-{현존 최대 + 1}.
-  # 두 가지를 견뎌야 한다:
-  #  ① 살아있는 브랜치로 세면 안 된다 — 머지 시 --delete-branch 로 지워져 origin 에 안 남는다.
-  #  ② orca 가 브랜치명을 제 방식대로 짓는다 — 사용자 프리픽스를 붙이고 '/' 를 '-' 로 바꾼다
-  #     (실측: 원한 feature/RPB-10043-integration-7 → 실제 OhSeungWan/feature-RPB-10043-integration-7).
-  #     그래서 접두사로 매칭하지 말고 '통합브랜치명(원형 또는 슬러그) + -숫자' 로 끝나는 것에서 숫자만 뽑는다.
+  # 세는 곳이 셋인 이유(삭제된 브랜치 · orca 의 이름 변형 · 아직 push 안 된 티켓)는 SKILL.md 함정 참조.
   SLUG=$(printf '%s' "$INTEGRATION" | tr '/' '-')
-  #  ③ 아직 push 안 된 진행 중 티켓도 세야 한다 — 로컬 브랜치는 공용 git dir 라 다른 워크트리 것도 보인다.
   maxn=$( { gh pr list --repo "$REPO" --base "$INTEGRATION" --state all --limit 200 \
               --json headRefName -q '.[].headRefName'
             git ls-remote --heads origin | sed 's#.*refs/heads/##'
@@ -115,8 +101,7 @@ for n in "$@"; do
   fi
   echo "  워크트리: $WT   브랜치: $GOT_BRANCH"
 
-  # orca.yaml 이 없으면 setup hook 이 안 돈다 — 새 워크트리에 의존성이 없어 테스트가 죽는다.
-  # node 레포면 node_modules 를 빌려준다. 아니면 아무 일도 안 한다.
+  # orca.yaml 이 없으면 setup hook 이 안 돌아 새 워크트리에 의존성이 없다. node 레포면 빌려준다.
   [ -d "$ROOT/node_modules" ] && [ ! -e "$WT/node_modules" ] && ln -s "$ROOT/node_modules" "$WT/node_modules"
   for f in .env .env.local .env.development; do
     [ -f "$ROOT/$f" ] && [ ! -e "$WT/$f" ] && ln -s "$ROOT/$f" "$WT/$f"
@@ -164,7 +149,7 @@ EOF
     | tee "$LOGDIR/ticket-$n.jsonl" \
     | jq -r --unbuffered "$RENDER" || true
 
-  # 게이트: /track merged 가 이슈를 닫았나. claude 의 exit code 는 작업 성공과 무관하다.
+  # 유일한 판정: /track merged 가 이슈를 닫았나. claude 의 exit code 는 작업 성공과 무관하다.
   state=$(gh issue view "$n" --repo "$REPO" --json state -q .state)
   if [ "$state" != "CLOSED" ]; then
     echo "!!! 티켓 #$n 미완료(이슈 $state). 중단." >&2
