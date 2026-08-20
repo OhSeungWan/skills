@@ -59,6 +59,23 @@ agent가 관측할 수 없는 것만 사람이 찍는다 — 다 썼다는 의�
 짚기 전에 가설 3~5개를 순위 매긴다. 배치 화면에 걸리는 티켓 이슈·스펙 이슈를 읽어 Figma·API 계약·ADR을 근거로 쓰고, 없으면 없는 대로 간다.
 반복은 스킬 밖 — `/loop 30m /qa fix`. `/loop`는 세션에 묶이므로 크론이 아니다.
 
+### design-qa — 시안 대조 자동 QA
+
+`qa` 루프의 **빠진 첫 칸**이다. 사람이 눈으로 찾아 타이핑하던 자리를 기계가 채운다.
+team 존 화면을 뷰포트 390으로 찍고 피그마 시안과 대조해, 새로 발견한 폴리싱 결함만 QA 항목으로 쌓는다.
+판정은 픽셀 diff가 아니라 **VLM 서술**이고, 관통하는 원칙은 **정밀도 > 재현율**이다.
+
+| 호출 | 시점 | 하는 일 |
+|---|---|---|
+| `/design-qa setup` | 대장이 없을 때 · 시안이 바뀐 뒤 | 피그마 프레임 ↔ 라우트 짝짓기 → 섹션·셀렉터 유도 → 한 바퀴 돌려 자동 검증. 사람은 걸러진 줄만 검수 |
+| `/design-qa scan` | 사람 QA 직전 | 화면 대장대로 촬영 → 섹션당 서브에이전트 판정 → 시트에 행 생성(`사람 확인 필요`) |
+
+**화면 대장**(`.design-qa/ledger.yaml`, 대상 레포에 gitignore)이 정답지를 담고 스펙 이슈는 그 출처다.
+줄 단위는 화면이 아니라 **캡처**(화면+스텝) — 위저드는 스텝마다 시안 프레임이 따로다.
+실물은 고정 요소를 `visibility:hidden`으로 내린 뒤 **섹션 노드 요소 스크린샷**으로 찍는다. 가림은 숨기는 데서 그치지 않고 **없는 결함을 최고 확신도로** 만든다.
+틀린 대장 한 줄이 그럴듯한 가짜를 쌓으므로, **고유 텍스트 겹침**이 짝짓기·setup 검증·매 실행 게이트 세 자리를 막는다.
+행은 `사람 확인 필요`로 들어가고 PR·수정·상태 전이는 `qa fix`가 한다. 시트가 없으면 만들지 않고 `/qa collect`로 안내한다.
+
 ### shared-store — 워크트리 공유 문서 스토어
 
 repo 하나의 모든 워크트리가 **커밋되지 않는 개인 문서**(`CONTEXT.md`·`CLAUDE.local.md`·`docs/agents`·`docs/adr` 등)를
@@ -79,7 +96,7 @@ repo 하나의 모든 워크트리가 **커밋되지 않는 개인 문서**(`CON
 
 ## MCP 서버
 
-`.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844`).
+`.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844 --grant-permissions local-network-access`).
 로그인이 필요한 화면을 찍으려면 세션 파일 경로를 환경변수 `PLAYWRIGHT_MCP_STORAGE_STATE`로
 넘긴다 — 머신마다 다르고 토큰이 들어 있으므로 값은 커밋하지 않는다.
 
@@ -90,4 +107,5 @@ export PLAYWRIGHT_MCP_STORAGE_STATE="$HOME/.config/design-qa/storage-state.json"
 ```
 
 `--isolated` 없이 세션 파일만 주면 **에러 없이 조용히 무시된다**(뷰포트는 먹고 쿠키만 빈다).
+`--grant-permissions local-network-access`가 없으면 Chrome이 사설망 API 요청을 자동 거부해 앱이 `Network Error`만 그린다 — 앱 셸은 정상 렌더되므로 스크린샷만 보면 "화면은 떴다"로 읽힌다.
 세션은 만료되면 자동 갱신되지 않으므로 위 명령을 다시 돌려 파일을 새로 만든다.
