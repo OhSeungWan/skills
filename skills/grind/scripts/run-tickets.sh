@@ -66,11 +66,16 @@ fi
 # `##` 로 시작하는 에이전트 마커와 결과 한 줄만 남긴다.
 # 툴 이름을 안 내보내는 이유: stdout 은 오케스트레이터 세션의 컨텍스트를 먹는 자리다.
 # 사후 진단은 원본 .jsonl 에서 한다 (거기엔 툴 인자까지 다 있다).
+#
+# -R + fromjson? 인 이유: claude 가 stream-json 과 **같은 stdout 으로** 비-JSON 줄을 섞어 내보낸다
+# (실측: MCP 의 "Client.listTools() called but server does not advertise tools capability" 경고).
+# -R 없이 돌리면 jq 가 그 줄에서 죽고, EPIPE 가 tee 를 거쳐 claude 까지 올라가 티켓이 통째로 끊긴다(실측: exit 144).
 RENDER='
-  if .type=="assistant" then
-    (.message.content[]? | select(.type=="text") | .text | select(startswith("##")))
-  elif .type=="result" then "  ▪ result=\(.subtype) turns=\(.num_turns // "?")"
-  else empty end'
+  fromjson? // empty
+  | if .type=="assistant" then
+      (.message.content[]? | select(.type=="text") | .text | select(startswith("##")))
+    elif .type=="result" then "  ▪ result=\(.subtype) turns=\(.num_turns // "?")"
+    else empty end'
 
 for n in "$@"; do
   echo "=== 티켓 #$n 시작 $(date +%H:%M:%S) ==="
@@ -165,7 +170,9 @@ EOF
     --output-format stream-json --verbose \
     2>"$LOGDIR/ticket-$n.err" ) \
     | tee "$LOGDIR/ticket-$n.jsonl" \
-    | jq -r --unbuffered "$RENDER" || true
+    | { jq -rR --unbuffered "$RENDER" || cat >/dev/null; } || true
+  # jq 가 그래도 죽으면 cat 이 남은 stdin 을 드레인한다. 렌더러 하나 죽었다고
+  # producer(claude)를 EPIPE 로 끊어 티켓을 날리지 않는다 — 렌더는 곁다리고 원본은 .jsonl 에 이미 있다.
 
   # 유일한 판정: /track merged 가 이슈를 닫았나. claude 의 exit code 는 작업 성공과 무관하다.
   state=$(gh issue view "$n" --repo "$REPO" --json state -q .state)

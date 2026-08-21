@@ -75,7 +75,9 @@ description: 트랙의 티켓들을 무인으로 끝까지 민다. 티켓 1장�
 
 **`claude`의 exit code는 작업 성공과 무관하다.** 유일한 판정은 **티켓 이슈가 CLOSED인가**다. `/track merged`의 1항이 이슈를 닫으므로, 프롬프트는 에이전트에게 "막히면 이슈를 닫지 마라"를 박아 둔다.
 
-실패하면 스크립트가 거기서 멈추고 워크트리를 남긴다. 사람이 볼 것은 `.jsonl`의 마지막 `##` 마커와 `.err`다.
+실패하면 스크립트가 거기서 멈추고 워크트리를 남긴다. 사람이 볼 것은 `.jsonl`의 마지막 `##` 마커와 `.err`다. `.jsonl`은 **순수 JSON이 아니다** — 위 함정대로 비-JSON 줄이 섞이므로 `jq`로 읽을 땐 `-R`과 `fromjson?`를 쓴다.
+
+**재개 전에 실측할 것 둘**: ⑴ 고아 `claude` 프로세스가 아직 도는가 — 있으면 죽인다. ⑵ 워크트리에 커밋이 이미 있는가(`git log`·`git status`) — 있으면 구현을 다시 시키지 말고 남은 단계만 이어받는다.
 
 ## 티켓이 가리키는 것 — 참조 문서
 
@@ -114,6 +116,8 @@ gh api repos/<repo>/issues/<통합PR>/comments --paginate \
 | `repo-gates.md` | 첫 티켓이 발견해서 쓴다 | 매 티켓 프롬프트에 통째로 인라인 |
 | `ticket-runs/<통합>/` | 스크립트 | 사람이 사후에 |
 
+배관 자체의 자가검사는 [`scripts/self-check.sh`](scripts/self-check.sh)다 — 미소진 필터와 렌더 파이프라인 둘 다 CI가 안 돌리는 자리(프롬프트 문자열 안·파이프라인 안)에 살아서 여기서 한 번 돈다. 스크립트를 고쳤으면 이걸 돌린다.
+
 `repo-gates.md`가 이 스크립트를 **repo 무관하게** 만드는 장치다. 새 repo의 첫 티켓은 `package.json`과 CI 워크플로를 읽어 실질 게이트를 스스로 찾고 그 사실을 여기 적는다. 둘째 티켓부터 공짜로 받는다.
 
 ## 함정 — 전부 실측
@@ -121,6 +125,8 @@ gh api repos/<repo>/issues/<통합PR>/comments --paginate \
 - **`/loop`로는 안 된다.** 같은 세션에 프롬프트만 다시 넣는 도구라 컨텍스트가 쌓인다. 이 스킬이 존재하는 이유가 그것이다.
 - **`claude -p` 프로세스는 `claude agents --json`에 안 뜬다.** 그래서 `SendMessage`로 못 닿는다. 실시간 주입이 정말 필요하면 `--input-format stream-json`으로 stdin을 열어야 하는데 FIFO와 프로토콜이 붙는다. 대부분은 통합 PR 코멘트의 두 읽기 지점으로 충분하다 — 계약 변경은 보통 티켓 사이에 도착한다.
 - **`--output-format text`는 끝날 때까지 무음이다.** 로그 파일이 완료 전까지 빈다. `stream-json --verbose`가 필요한 이유.
+- **`stream-json` stdout에 비-JSON 줄이 섞인다.** MCP 경고가 같은 stdout으로 샌다(실측: `Client.listTools() called but server does not advertise tools capability`). 렌더러를 순진하게 `jq -r`로 걸면 그 줄에서 죽고, **EPIPE가 `tee`를 거쳐 `claude`까지 올라가 티켓이 통째로 끊긴다**(실측: exit 144, 티켓 #1707). 그래서 렌더는 `jq -rR 'fromjson? // empty | …'`로 비-JSON을 건너뛰고, 그래도 죽으면 `|| cat >/dev/null`이 남은 stdin을 드레인한다. **렌더는 곁다리고 원본은 `.jsonl`에 이미 있다 — 곁다리가 본체를 죽이면 안 된다.**
+- **끊긴 티켓의 작업은 대개 안 날아간다.** 러너가 죽어도 `claude` 자식이 고아로 남아 커밋까지 마치는 경우가 있다(실측: #1707이 `d92033ba`로 커밋 완료, 워크트리 clean). 재개 전에 **고아 프로세스와 워크트리 상태를 먼저 실측한다** — 커밋이 이미 있으면 구현 단계를 다시 돌리지 말고 검증·PR·머지만 이어받는다.
 - **실행 중인 스크립트를 in-place로 고치지 마라.** bash가 파일을 이어 읽어서 실행이 깨진다. `.next`로 써두고 판이 끝난 뒤 `mv`한다.
 - **orca가 브랜치명을 제 방식대로 짓는다.** 사용자 프리픽스를 붙이고 `/`를 `-`로 바꾼다(실측: 원한 `feature/X-integration-7` → 실제 `OhSeungWan/feature-X-integration-7`). 그래서 번호 계산은 접두사로 매칭하지 않고 **끝의 숫자만** 뽑는다.
 - **티켓 브랜치는 머지 시 삭제된다.** `git ls-remote`로 세면 origin에 안 남아 번호가 1로 되돌아간다. PR head ref로 세야 하고, 아직 push 안 된 진행 중 티켓 때문에 **로컬 브랜치도** 세야 한다(공용 git dir라 다른 워크트리 것도 보인다).
