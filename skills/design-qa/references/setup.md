@@ -14,6 +14,7 @@
   config.yaml            # 존 URL·피그마 기본값·시트 URL·세션 경로·뷰포트·동적 식별자·진입 상태
   storage-state.json     # 로그인 세션. design-qa-session-wizard.sh 가 만든다
   cache/<file_key>/<figma.version>/<node_id>.png
+  runs/<ISO 8601>.yaml    # scan 실행 기록. 오탐률 실측의 원천이다
 ```
 
 `.gitignore`에 `.design-qa/`와 `.playwright-mcp/` 두 줄(뒤엣것은 MCP가 서버 cwd에 떨구는 콘솔·스냅샷 부산물이다).
