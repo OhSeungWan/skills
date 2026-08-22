@@ -184,7 +184,7 @@ finish() {
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=5
+TOTAL_STAGES=6
 
 # 이 위저드 전용 값. 커밋하지 않는다 — 세션 파일에는 로그인 토큰이 들어 있다.
 # 버전은 대상 레포의 playwright-core 와 맞춘다. 그래야 이미 받아 둔 chromium 을
@@ -218,12 +218,8 @@ if ! command -v npx >/dev/null 2>&1; then
 fi
 say "✓ npx 있음"
 
-if [[ -f ".mcp.json" ]] && grep -q '"playwright"' .mcp.json 2>/dev/null; then
-  say "✓ .mcp.json 에 playwright 서버 선언 있음"
-else
-  warn ".mcp.json 에 playwright 선언이 안 보인다. skills 레포 루트에서 실행해라."
-  confirm "그래도 계속할까?" || exit 1
-fi
+note "Playwright MCP 는 seungwan-skills 플러그인이 등록한다 (plugin.json mcpServers)."
+note "어느 레포에서 Claude 를 켜도 붙는다 — 이 위저드는 어디서 돌려도 된다."
 
 printf '\n'
 if npx -y "$PW_VERSION" install --dry-run chromium 2>/dev/null | grep -q "Install location"; then
@@ -355,9 +351,9 @@ stage "Claude Code 재시작하고 확인"
 say "MCP 도구는 세션이 시작할 때만 붙는다. 지금 켜져 있는 세션에는 안 붙는다."
 printf '\n'
 step "터미널을 새로 열거나 'source $PROFILE' 를 돌린다."
-step "그 터미널에서 skills 레포로 가서 Claude Code 를 다시 켠다."
+step "그 터미널에서 대상 레포로 가서 Claude Code 를 다시 켠다."
 step "'mcp__playwright__' 로 시작하는 도구가 뜨는지 본다."
-step "그 세션에서 로그인 벽 뒤 화면을 한 장 찍는다 — 티켓 #12 의 완료 기준이다."
+step "그 세션에서 로그인 벽 뒤 화면을 한 장 찍어 세션이 사는지 본다."
 printf '\n'
 note "세션은 만료되면 자동 갱신되지 않는다. 로그인 화면이 찍히기 시작하면"
 note "이 위저드를 다시 돌려라."
