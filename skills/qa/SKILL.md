@@ -15,7 +15,7 @@ description: 트랙 QA 루프의 우산 스킬 — 분기 4개. 화면 대장을
 
 | 분기 | 하는 일 | 규칙 |
 | --- | --- | --- |
-| `setup` | 화면 대장 생성·갱신 — 피그마 짝짓기 · 셀렉터 유도 · 한 바퀴 자동 검증 | [`references/setup.md`](references/setup.md) |
+| `setup` | 화면 대장 생성·갱신 — 피그마 짝짓기 · 셀렉터 유도 · 한 바퀴 자동 검증 · 오라클 "시안과 다름" → `stale` 초안 | [`references/setup.md`](references/setup.md) |
 | `scan` | 대장대로 team 존을 찍어 시안과 대조, 새로 발견한 폴리싱 결함만 행 생성 | [`references/scan.md`](references/scan.md) · 판정 문안 [`references/judge.md`](references/judge.md) |
 | `collect` | 러프한 보고를 항목 단위로 쪼개 시트에 쌓기 | [`references/collect.md`](references/collect.md) |
 | `fix` | `시작전` 항목을 코드에서 원인 짚어 수정, 통합 브랜치로 배치 PR | [`references/fix.md`](references/fix.md) |
