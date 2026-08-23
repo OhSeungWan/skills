@@ -16,7 +16,7 @@ description: 트랙 QA 루프의 우산 스킬 — 분기 4개. 화면 대장을
 | 분기 | 하는 일 | 규칙 |
 | --- | --- | --- |
 | `setup` | 화면 대장 생성·갱신 — 피그마 짝짓기 · 셀렉터 유도 · 한 바퀴 자동 검증 · 오라클 "시안과 다름" → `stale` 초안 | [`references/setup.md`](references/setup.md) |
-| `scan` | 대장대로 team 존을 찍어 시안과 대조, 새로 발견한 폴리싱 결함만 행 생성 | [`references/scan.md`](references/scan.md) · 판정 문안 [`references/judge.md`](references/judge.md) |
+| `scan` | 대장대로 team 존을 찍어 시안과 대조(폴리싱) + 오라클 유래 플로우 검사(로직), 새로 발견한 결함만 행 생성 | [`references/scan.md`](references/scan.md) · 판정 문안 [`references/judge.md`](references/judge.md) |
 | `collect` | 러프한 보고를 항목 단위로 쪼개 시트에 쌓기 | [`references/collect.md`](references/collect.md) |
 | `fix` | `시작전` 항목을 코드에서 원인 짚어 수정, 통합 브랜치로 배치 PR | [`references/fix.md`](references/fix.md) |
 
@@ -74,7 +74,8 @@ scan·setup 전용 값은 대상 레포 `.qa/config.yaml`: 존 URL · 피그마 
 | 대장 | 대상 레포 `.qa/ledger.yaml`. 화면 > 캡처 > 섹션 계층으로 도달 경로·시안 노드·셀렉터를 적은 사람 검수 자산. 앱 단위 — 트랙보다 오래 산다. 스키마는 [`references/setup.md`](references/setup.md) |
 | 실물 / 시안 | team 존 스크린샷 / 피그마 노드 이미지 |
 | 갈래 | 판정이 고르는 결함 종류 여덟: 여백·크기·컬러·에셋·정렬·문구·누락·잉여 |
-| 지문 키 | `<화면 slug>[-<스텝>]/<섹션 slug>/<갈래>`. 시트 `비고`에 `qa-key: …`로 박혀 중복을 거른다 |
+| 지문 키 | 비주얼은 `<화면 slug>[-<스텝>]/<섹션 slug>/<갈래>`, 플로우는 `<화면 slug>/<오라클 항목 ID>`. 시트 `비고`에 `qa-key: …`로 박혀 중복을 거른다 |
+| 플로우 | 대장 화면 레벨 `flows:`의 원자 검사 — 조작 후 URL·문구·속성 단언. 정답지는 오라클 ④ 확정뿐(ADR-0004) |
 | 짝짓기 | 실물 캡처와 시안 프레임이 같은 화면인지 확인하는 일. 실행 게이트(`match_text`)와 판정의 `같은 화면인가` 두 겹 |
 | 미커버 / 시안 대기 | 못 찍은 화면(대장을 손봐라) / `stale`로 건너뛴 섹션(시안을 기다려라) |
 
@@ -84,4 +85,4 @@ scan·setup 전용 값은 대상 레포 `.qa/config.yaml`: 존 URL · 피그마 
 
 ## agent가 하지 않는 것
 
-기계 발견의 범위는 scan의 시안 대조 폴리싱까지다. 로직·UX 결함 발견과 판단은 사람 몫이고(플로우 검사 확장은 [#22](https://github.com/OhSeungWan/skills/issues/22)), 그 자리를 어설픈 자동화가 대신하면 품질이 내려간다. agent가 앱을 띄워 재현하는 일은 fix에서 정적 추적이 실패했을 때의 마지막 수단뿐이다 — 게이트와 예외는 [`references/fix.md`](references/fix.md).
+기계 발견의 범위는 scan의 시안 대조 폴리싱과 **오라클 ④ 확정에서 분해된 플로우 검사**까지다. 오라클에 없는 기대값을 agent가 추론해 검사하지 않는다 — 그건 제품 결정이다. 나머지 로직·UX 결함 발견과 판단은 사람 몫이고, 그 자리를 어설픈 자동화가 대신하면 품질이 내려간다. agent가 앱을 띄워 재현하는 일은 fix에서 정적 추적이 실패했을 때의 마지막 수단뿐이다 — 게이트와 예외는 [`references/fix.md`](references/fix.md).
