@@ -6,10 +6,10 @@
 
 ## 사는 곳
 
-대상 레포 `.design-qa/`. 커밋되는 것은 `.gitignore` 두 줄뿐 — `.design-qa/`와 `.playwright-mcp/`(MCP가 cwd에 떨구는 부산물).
+대상 레포 `.qa/`. 커밋되는 것은 `.gitignore` 두 줄뿐 — `.qa/`와 `.playwright-mcp/`(MCP가 cwd에 떨구는 부산물).
 
 ```
-.design-qa/
+.qa/
   ledger.yaml            # 대장 — 앱 단위. 트랙보다 오래 산다
   config.yaml            # 존 URL·피그마 기본값·시트 URL·세션 경로·뷰포트·동적 식별자·진입/종결 상태·오라클 좌표
   judge-prompt.md        # 판정 문안 사본. scan 이 references/judge.md 에서 매번 덮어쓴다 — 손대지 않는다
@@ -150,6 +150,6 @@ before:
 
 ## 세션 파일
 
-`.agents/design-qa/design-qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → `.claude/settings.local.json` `env` 등록(셸 export 는 선택) → 세션 재시작. 만료는 수동 갱신.
+`.agents/qa/qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → `.claude/settings.local.json` `env` 등록(셸 export 는 선택) → 세션 재시작. 만료는 수동 갱신.
 
-검증은 CLI가 아니라 MCP 표면에서 한다 — CLI `playwright screenshot`에는 `--grant-permissions`가 없어 앱이 `Network Error`만 그린다. `.agents/design-qa/verify-shot.mjs`가 같은 플래그로 한 장 찍고 실패 모양을 종료코드로 알린다.
+검증은 CLI가 아니라 MCP 표면에서 한다 — CLI `playwright screenshot`에는 `--grant-permissions`가 없어 앱이 `Network Error`만 그린다. `.agents/qa/verify-shot.mjs`가 같은 플래그로 한 장 찍고 실패 모양을 종료코드로 알린다.

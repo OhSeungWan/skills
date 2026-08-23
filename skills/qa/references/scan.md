@@ -1,46 +1,18 @@
----
-name: design-qa
-description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시안과 대조하고, 새로 발견한 폴리싱 결함만 QA 시트에 QA 항목으로 쌓는다. 사람 QA 직전에 시트를 미리 채울 때(scan), 화면 대장을 만들거나 시안 변경을 반영할 때(setup) 사용. 사용자가 "디자인 QA 돌려줘", "시안 대조해줘", "대장 갱신해줘"라고 말할 때. /design-qa [setup | scan [화면 slug...] [--all]]
----
+# scan — 시안 대조로 시트 미리 채우기
 
-# design-qa
+호출: `/qa scan [화면 slug...] [--all]`. `collect`는 사람이 눈으로 찾아 타이핑하는 자리고, scan은 그 자리를 기계가 미리 채운다.
 
-`qa` 루프의 빠진 첫 칸이다. `collect`는 사람이 눈으로 찾아 타이핑하는 자리고, 이 스킬은 그 자리를 기계가 미리 채운다.
+**정밀도가 재현율보다 중요하다.** 덜 찾더라도 틀린 걸 안 올린다 — 오탐이 한 번만 섞여도 사람이 이 도구를 다시 안 켠다. 규칙 하나하나의 실측 근거는 [`rationale.md`](rationale.md)에 있다. 규칙을 바꿀 때만 읽는다.
 
-**정밀도가 재현율보다 중요하다.** 덜 찾더라도 틀린 걸 안 올린다 — 오탐이 한 번만 섞여도 사람이 이 도구를 다시 안 켠다. 규칙 하나하나의 실측 근거는 [`references/rationale.md`](references/rationale.md)에 있다. 규칙을 바꿀 때만 읽는다.
+하지 않는 것: QA 시트 생성(`collect`의 일) · 수정·PR·상태 전이(`fix`의 일) · 코드 추적(그래서 `성질`은 전부 `폴리싱`) · 머지 차단(PR 게이트가 아니라 사람 QA 직전 배치다).
 
-하지 않는 것: QA 시트 생성(`/qa collect`의 일) · 수정·PR·상태 전이(`qa fix`의 일) · 코드 추적(그래서 `성질`은 전부 `폴리싱`) · 머지 차단(PR 게이트가 아니라 사람 QA 직전 배치다).
+용어 · 값 결정 · 시트 스키마는 [`SKILL.md`](../SKILL.md)에 있다. `.qa/ledger.yaml`이 없으면 `setup`([`setup.md`](setup.md))으로 안내하고 멈춘다.
 
-## 용어
-
-| 용어 | 뜻 |
-| --- | --- |
-| 대장 | `.design-qa/ledger.yaml`. 화면 > 캡처 > 섹션 계층으로 도달 경로·시안 노드·셀렉터를 적은 사람 검수 자산. 스키마는 [`references/setup.md`](references/setup.md) |
-| 실물 / 시안 | team 존 스크린샷 / 피그마 노드 이미지 |
-| 갈래 | 판정이 고르는 결함 종류 여덟: 여백·크기·컬러·에셋·정렬·문구·누락·잉여 |
-| 지문 키 | `<화면 slug>[-<스텝>]/<섹션 slug>/<갈래>`. 시트 `비고`에 `qa-key: …`로 박혀 중복을 거른다 |
-| 짝짓기 | 실물 캡처와 시안 프레임이 같은 화면인지 확인하는 일. 실행 게이트(`match_text`)와 판정의 `같은 화면인가` 두 겹 |
-| 미커버 / 시안 대기 | 못 찍은 화면(대장을 손봐라) / `stale`로 건너뛴 섹션(시안을 기다려라) |
-
-## 값 결정
-
-`skills/qa/SKILL.md`의 값 결정 표와 시트 스키마를 그대로 물려받는다 — QA 시트 · 통합 브랜치/통합 PR · team 존 · 스펙 이슈. 시트 부모 페이지만 안 물려받는다(시트를 만들지 않으므로). 스펙 이슈는 `setup`에서 피그마 URL을 캐낼 때만 읽는다.
-
-전용 값은 대상 레포 `.design-qa/config.yaml`: 존 URL · 피그마 `file_key`/`page_id` 기본값 · QA 시트 URL · `storageState` 경로 · 뷰포트 · 동적 세그먼트 식별자 · 진입 상태 이름 · 종결 상태 이름 · 오라클 좌표(`oracle:` 블록 — `/oracle` 스킬이 같은 자리를 읽는다).
-
-**실행 위치는 대상 레포다.** `.design-qa/`·`.gitignore`·스크린샷 상대 경로가 전부 거기 기준이다. Playwright MCP는 플러그인이 등록하므로(`plugin.json`의 `mcpServers`) 어느 레포에서 켜도 `mcp__*playwright*` 도구가 뜬다. 안 뜨면 세션을 다시 켠다 — MCP는 세션 시작 때만 붙는다.
-
-## 분기 판별
-
-`setup`이면 [`references/setup.md`](references/setup.md)로 간다 — 대장이 없거나, `figma.version`이 바뀌었거나, `unpaired`·`unreached` 줄을 손볼 때.
-
-`scan`이거나 인자가 없으면 아래로 간다. `.design-qa/ledger.yaml`이 없으면 `setup`으로 안내하고 멈춘다.
-
-## 전제 확인 — scan 앞머리에서 한 번
+## 전제 확인 — 앞머리에서 한 번
 
 순서대로. 하나라도 못 넘기면 멈추고 무엇이 없는지 보고한다.
 
-1. `.design-qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`. 대상 레포 `.claude/settings.local.json`의 `env.PLAYWRIGHT_MCP_STORAGE_STATE`가 있는가 — 없으면 세션 파일이 MCP에 안 닿는다. 위저드(`.agents/design-qa/design-qa-session-wizard.sh`)로 안내하고 멈춘다.
+1. `.qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`. 대상 레포 `.claude/settings.local.json`의 `env.PLAYWRIGHT_MCP_STORAGE_STATE`가 있는가 — 없으면 세션 파일이 MCP에 안 닿는다. 위저드(`.agents/qa/qa-session-wizard.sh`)로 안내하고 멈춘다.
 2. QA 시트가 있는가. 없으면 `/qa collect`로 안내하고 멈춘다.
 3. **상태 이름을 찾는다.** 시트 스키마를 1회 읽어 `해결 여부`의 타입(`select`·`status` 둘 다 실재)과 옵션 목록을 얻고, **공백을 무시해** 진입 상태 `사람 확인 필요`와 종결 상태 `배포 완료`를 찾아 `config.yaml`에 적는다. 진입 상태를 못 찾으면 지어내지 않고 옵션 목록을 보여 주고 고르게 한다. 종결 상태를 못 찾으면 회귀 검사를 끄되 리포트에 그 사실을 적는다.
 4. **title 프로퍼티를 타입으로 찾는다.** 이름이 `증상`이 아닌 시트가 실재한다.
@@ -54,18 +26,18 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
 
 1. **`requires`·`stale` 확인.** `requires`의 `config.yaml` 키가 하나라도 비면 화면을 건너뛰고 미커버. `stale`이 적힌 섹션은 그 섹션만 건너뛰고 시안 대기 — 나머지 섹션은 정상으로 돈다. `stale`은 사람이 손으로 적는 값이라서만 이 예외가 안전하다. 실행이 추론해 적지 않는다.
 2. **도달.** `path`로 이동하고 `before` 스텝을 순서대로 — `clickText`(정확히 일치) · `fillPlaceholder` · `scrollToText`. `forbidden`의 문구는 어떤 경우에도 `clickText` 하지 않는다. 실제 주문을 만드는 버튼이 거기 있다.
-3. **`arrival_text` 확인.** 못 찾으면 이 캡처를 건너뛰고 미커버. 건너뛰기 전에 `document.body.innerText` 앞 300자에 `/Network Error/`·`/로그인|login|sign in/i`를 건다(`verify-shot.mjs`와 같은 검사) — 걸리면 **대장이 아니라 세션·망 문제**로 보고하고 실행을 멈춘다. 안 걸리는 미커버가 연속 3화면이면 그래도 멈춘다 — 세션은 중간에도 만료되고 그 모양이 정확히 미커버다. 멈출 때 무엇을 의심하는지와 어디까지 돌았는지를 함께 보고한다. 세션 갱신은 `.agents/design-qa/design-qa-session-wizard.sh`.
+3. **`arrival_text` 확인.** 못 찾으면 이 캡처를 건너뛰고 미커버. 건너뛰기 전에 `document.body.innerText` 앞 300자에 `/Network Error/`·`/로그인|login|sign in/i`를 건다(`verify-shot.mjs`와 같은 검사) — 걸리면 **대장이 아니라 세션·망 문제**로 보고하고 실행을 멈춘다. 안 걸리는 미커버가 연속 3화면이면 그래도 멈춘다 — 세션은 중간에도 만료되고 그 모양이 정확히 미커버다. 멈출 때 무엇을 의심하는지와 어디까지 돌았는지를 함께 보고한다. 세션 갱신은 `.agents/qa/qa-session-wizard.sh`.
 4. **프라이밍 스크롤 1회.** 문서 끝까지 훑고 원위치 — lazy-load·진입 애니메이션이 `흐릿함`·`누락` 오탐이 된다.
 5. **짝짓기 게이트.** `match_text` 중 실물 DOM에 나타나는 것이 2개 미만이면 캡처를 건너뛰고 짝짓기 실패. 프라이밍 뒤 DOM에서, 공백·개행을 없앤 뒤 포함 비교, `match_text`는 앞 12자만(실물 말줄임). **여기서 대장을 고치지 않는다** — 시안 변경인지 코드 변경인지 실행은 모른다.
 6. **섹션 촬영.** 순서:
    1. `hide_fixed: false` 섹션(헤더·탭바)을 **먼저** 찍는다.
-   2. 나머지 섹션마다 [`setup.md`의 숨김·가드 호출](references/setup.md#숨김가드-배관) 한 번 — 섹션 밖 `fixed`/`sticky`를 `visibility: hidden !important`로 숨기고, 대상 박스와 겹치는 잔여 고정 요소 수와 `box`를 돌려받는다. **잔여가 0이 아니면 판정에 보내지 않고 가림 잔여로 센다.**
-   3. `browser_take_screenshot`에 `target: <selector>`, `scale: 'css'`, `filename`은 `.design-qa/runs/<run>/<화면>__<섹션>.png` **절대 경로**. `capture: viewport`면 `target` 없이 뷰포트 한 장.
+   2. 나머지 섹션마다 [`setup.md`의 숨김·가드 호출](setup.md#숨김가드-배관) 한 번 — 섹션 밖 `fixed`/`sticky`를 `visibility: hidden !important`로 숨기고, 대상 박스와 겹치는 잔여 고정 요소 수와 `box`를 돌려받는다. **잔여가 0이 아니면 판정에 보내지 않고 가림 잔여로 센다.**
+   3. `browser_take_screenshot`에 `target: <selector>`, `scale: 'css'`, `filename`은 `.qa/runs/<run>/<화면>__<섹션>.png` **절대 경로**. `capture: viewport`면 `target` 없이 뷰포트 한 장.
    4. 촬영 뒤 같은 배관의 복원 호출로 숨김을 푼다. 안 풀면 다음 섹션이 빈 헤더를 찍는다.
-7. **시안 확보와 좌표계 통일.** `.design-qa/cache/<file_key>/<figma.version>/<node_id>.png`가 있으면 그걸 쓴다. 없으면 피그마 `get_screenshot`(`maxDimension: 1568`)의 단명 URL을 curl로 그 경로에 떨구고 `sips --resampleWidth <original_width>`로 자연 css 폭에 굳힌다(`original_width`는 응답 필드 — 첫 실행에서 필드명을 확인해 확정한다). 인라인 base64는 쓰지 않는다(캐시 불가). 캐시 무효화는 디렉터리 이름이 전부다 — 지우는 코드를 짜지 않는다.
+7. **시안 확보와 좌표계 통일.** `.qa/cache/<file_key>/<figma.version>/<node_id>.png`가 있으면 그걸 쓴다. 없으면 피그마 `get_screenshot`(`maxDimension: 1568`)의 단명 URL을 curl로 그 경로에 떨구고 `sips --resampleWidth <original_width>`로 자연 css 폭에 굳힌다(`original_width`는 응답 필드 — 첫 실행에서 필드명을 확인해 확정한다). 인라인 base64는 쓰지 않는다(캐시 불가). 캐시 무효화는 디렉터리 이름이 전부다 — 지우는 코드를 짜지 않는다.
 
    **폭 게이트.** 6번의 `box.width`와 `original_width`의 차가 **2px를 넘으면** 판정에 보내지 않고 좌표계 불일치로 센다. 상위 노드를 지목했거나 자식으로 내려간 섹션에서 갈린다 — 갈리면 계약의 "환산하지 마라"가 거짓이 되고 모든 `근거` 수치가 조용히 틀린다.
-8. **섹션당 서브에이전트 하나로 판정.** 프롬프트는 [`references/judge.md`](references/judge.md) 문안 그대로 + 화면 이름 · 섹션 이름 · `ignore` 목록 · **두 png의 절대 경로**(실물 먼저). 문안은 scan 앞머리에서 `judge.md`의 인용 블록을 `.design-qa/judge-prompt.md`로 **덮어쓰고** 서브에이전트에 그 경로를 준다 — 사본을 손으로 고치지 않는다, 다음 scan이 덮는다(2026-08-22 실행의 사본이 레퍼런스보다 낡은 채 쓰인 실측). 서브에이전트가 `Read`로 두 장을 본다. 화면 전체 샷은 주지 않는다 — 섹션 크롭으로 좁힌 효과가 되돌아간다.
+8. **섹션당 서브에이전트 하나로 판정.** 프롬프트는 [`judge.md`](judge.md) 문안 그대로 + 화면 이름 · 섹션 이름 · `ignore` 목록 · **두 png의 절대 경로**(실물 먼저). 문안은 scan 앞머리에서 `judge.md`의 인용 블록을 `.qa/judge-prompt.md`로 **덮어쓰고** 서브에이전트에 그 경로를 준다 — 사본을 손으로 고치지 않는다, 다음 scan이 덮는다(2026-08-22 실행의 사본이 레퍼런스보다 낡은 채 쓰인 실측). 서브에이전트가 `Read`로 두 장을 본다. 화면 전체 샷은 주지 않는다 — 섹션 크롭으로 좁힌 효과가 되돌아간다.
 
    **`degraded: true` 섹션**은 두 이미지를 같은 비율로 세로 분할한다 — 한 장 css 1500px 이하, 인접 장 15% 겹침(`sips --cropToHeightWidth`). 장마다 판정 하나, 프롬프트에 "더 큰 섹션을 잘라낸 한 장"이라고 알린다. 지문 키에 장 번호를 붙이지 않는다. 이 섹션의 `문구`·`에셋` 판정은 받지 않고 흐림으로 버린 갈래로 센다 — 시안이 업스케일이라 글자·아이콘 세부가 없다.
 9. **판정 거르기.** 순서대로:
@@ -79,14 +51,14 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
     - title에 증상 한 줄. 리치 텍스트라 **서식 문자 금지**(`[홈]` 아니라 `홈 > 히어로`). 번호·지문 키 안 넣음.
     - `성질` = `폴리싱`, `해결 여부` = 진입 상태.
     - `재현순서` = 대장 `before` 스텝을 사람 문장으로.
-    - `비고` = 1행 `자동 생성 (design-qa)`, 2행 `qa-key: <키>` + 갈래·대상·확신도, 3행 `근거`(위치·실물값·시안값, `측정 불가`면 그대로).
+    - `비고` = 1행 `자동 생성 (qa scan)`, 2행 `qa-key: <키>` + 갈래·대상·확신도, 3행 `근거`(위치·실물값·시안값, `측정 불가`면 그대로). 옛 행의 `자동 생성 (design-qa)`도 같은 신호로 읽는다 — 구분자는 `자동 생성 (` 접두다.
     - "섹션 전체가 어긋남" 1건으로 접힌 판정이면 접힌 개별 항목을 행 본문에 체크박스 한 줄씩.
     - `테스트한 사람`은 비운다. 봇 계정이 없다.
     - 스크린샷 2장은 페이지 본문 이미지 블록 — `create-file-upload` → 받은 URL로 멀티파트 POST → `suggested_markdown`. `files` 속성은 실패한다. URL 수명 약 10분, 판정 직후 올려 바로 행을 만든다.
 
 ## 리포트
 
-터미널에 찍고 같은 내용을 `.design-qa/runs/<run>.yaml`로 남긴다(`<run>`은 콜론 없는 ISO — 디렉터리 이름과 같다). 읽는 코드는 짜지 않는다 — 사람이 열어 보고 쌓이면 폴더째 지운다. 실물 형태(2026-08-22 실행):
+터미널에 찍고 같은 내용을 `.qa/runs/<run>.yaml`로 남긴다(`<run>`은 콜론 없는 ISO — 디렉터리 이름과 같다). 읽는 코드는 짜지 않는다 — 사람이 열어 보고 쌓이면 폴더째 지운다. 실물 형태(2026-08-22 실행):
 
 ```yaml
 run: 2026-08-22T16-45-45

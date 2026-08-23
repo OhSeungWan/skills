@@ -58,7 +58,7 @@
 
 ## 세션 경로가 우회로로 간 이유
 
-2026-08-22 실행은 `PLAYWRIGHT_MCP_STORAGE_STATE` 대신 `browser_run_code_unsafe` 로 쿠키 주입 스크립트를 돌렸다 — 조사 문서가 기본 경로에 두지 말라고 한 도구다. 2026-08-23 원인 실측: MCP 0.0.79 번들은 그 환경변수를 `options.storageState` 로 읽는다(메커니즘은 멀쩡하다). 안 닿은 건 전달이다 — 위저드가 export 를 `~/.zshrc` 에 넣는 구조였고 그마저 기록돼 있지 않았으며, 셸 rc 는 GUI 런처(Orca)로 뜬 Claude Code 가 읽지 않는다. 그래서 위저드가 대상 레포 `.claude/settings.local.json` 의 `env` 블록에 쓰도록 바꿨다 — 설정의 `env` 는 세션과 자식 프로세스에 적용된다(공식 문서). 같은 실측에서 `.design-qa/judge-prompt.md` 사본이 `references/judge.md` 보다 낡은 채 쓰였다(목록 개수 무시 규칙 누락) — 그래서 사본은 scan 이 매번 덮어쓴다.
+2026-08-22 실행은 `PLAYWRIGHT_MCP_STORAGE_STATE` 대신 `browser_run_code_unsafe` 로 쿠키 주입 스크립트를 돌렸다 — 조사 문서가 기본 경로에 두지 말라고 한 도구다. 2026-08-23 원인 실측: MCP 0.0.79 번들은 그 환경변수를 `options.storageState` 로 읽는다(메커니즘은 멀쩡하다). 안 닿은 건 전달이다 — 위저드가 export 를 `~/.zshrc` 에 넣는 구조였고 그마저 기록돼 있지 않았으며, 셸 rc 는 GUI 런처(Orca)로 뜬 Claude Code 가 읽지 않는다. 그래서 위저드가 대상 레포 `.claude/settings.local.json` 의 `env` 블록에 쓰도록 바꿨다 — 설정의 `env` 는 세션과 자식 프로세스에 적용된다(공식 문서). 같은 실측에서 `.qa/judge-prompt.md` 사본이 `references/judge.md` 보다 낡은 채 쓰였다(목록 개수 무시 규칙 누락) — 그래서 사본은 scan 이 매번 덮어쓴다.
 
 ## 시트 쪽 사실
 

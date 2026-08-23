@@ -190,7 +190,7 @@ TOTAL_STAGES=6
 # 버전은 대상 레포의 playwright-core 와 맞춘다. 그래야 이미 받아 둔 chromium 을
 # 그대로 쓰고 브라우저를 새로 내려받지 않는다.
 PW_VERSION="playwright@1.61.0"
-DEFAULT_STATE_PATH="$HOME/.config/design-qa/storage-state.json"
+DEFAULT_STATE_PATH="$HOME/.config/qa-scan/storage-state.json"
 ENV_VAR_NAME="PLAYWRIGHT_MCP_STORAGE_STATE"
 
 # add_settings_env FILE NAME VALUE — Claude Code 설정 파일의 env 블록에 값을 멱등하게 넣는다.
@@ -215,7 +215,7 @@ add_export() {
   printf '  %s✓ wrote%s export %s → %s\n' "$GREEN" "$RESET" "$name" "$file"
 }
 
-banner "design-qa — Playwright 로그인 세션 만들기"
+banner "qa scan — Playwright 로그인 세션 만들기"
 
 # ── 1 ─────────────────────────────────────────────────────────────────────
 stage "준비 확인"
@@ -303,7 +303,7 @@ pause "다음 단계로."
 
 # ── 4 ─────────────────────────────────────────────────────────────────────
 stage "로그인 벽 뒤 화면 찍어서 눈으로 확인"
-say "세션이 진짜 사는지 확인한다. 뷰포트는 390x844 — design-qa 가 쓰는 폭이다."
+say "세션이 진짜 사는지 확인한다. 뷰포트는 390x844 — qa scan 이 쓰는 폭이다."
 note "주입이 깨지면 로그인 화면이 찍힌다."
 warn "VPN 을 켜 둬라. 앱 셸은 뜨는데 API 만 못 붙으면 'Network Error' 가 찍힌다 —"
 note "그건 세션 문제가 아니라 망 문제다. 둘을 헷갈리지 마라."
