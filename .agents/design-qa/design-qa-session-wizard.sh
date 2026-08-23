@@ -193,6 +193,17 @@ PW_VERSION="playwright@1.61.0"
 DEFAULT_STATE_PATH="$HOME/.config/design-qa/storage-state.json"
 ENV_VAR_NAME="PLAYWRIGHT_MCP_STORAGE_STATE"
 
+# add_settings_env FILE NAME VALUE — Claude Code 설정 파일의 env 블록에 값을 멱등하게 넣는다.
+# settings 의 env 는 세션과 그 자식 프로세스(MCP 서버 포함)에 적용된다 — 런처가 GUI 든 터미널이든.
+add_settings_env() {
+  local file="$1" name="$2" value="$3" tmp
+  mkdir -p "$(dirname "$file")"
+  [[ -s "$file" ]] || printf '{}\n' > "$file"
+  tmp=$(mktemp)
+  jq --arg k "$name" --arg v "$value" '.env = (.env // {}) | .env[$k] = $v' "$file" > "$tmp" && mv "$tmp" "$file"
+  printf '  %s✓ wrote%s env.%s → %s\n' "$GREEN" "$RESET" "$name" "$file"
+}
+
 # add_export FILE NAME VALUE — 셸 프로필에 export 한 줄을 멱등하게 넣는다.
 add_export() {
   local file="$1" name="$2" value="$3" tmp
@@ -329,20 +340,36 @@ pause "다음 단계로."
 
 # ── 5 ─────────────────────────────────────────────────────────────────────
 stage "환경변수 등록"
-say "Playwright MCP 는 이 환경변수에서 세션 파일 경로를 읽는다."
+say "Playwright MCP 는 환경변수 $ENV_VAR_NAME 에서 세션 파일 경로를 읽는다."
 note "경로를 레포에 안 적기 위한 방식이다. 이 레포는 공개다."
 printf '\n'
+warn "셸 프로필(.zshrc)의 export 는 GUI 런처(Orca·데스크톱 앱)로 뜬 Claude Code 에 닿지 않는다."
+note "2026-08-22 실측 — export 가 안 닿아 실행이 쿠키 주입 우회로를 짰다. 그래서 설정 파일에 넣는다."
+printf '\n'
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+SETTINGS_FILE="$REPO_ROOT/.claude/settings.local.json"
+say "대상 레포 설정: $SETTINGS_FILE (프로젝트 범위 · 기계마다 다름)"
+if ! command -v jq >/dev/null 2>&1; then
+  warn "jq 가 없다. 직접 넣어라: $SETTINGS_FILE 의 \"env\": { \"$ENV_VAR_NAME\": \"$STATE_PATH\" }"
+  SKIPPED+=("$ENV_VAR_NAME 수동 등록 (jq 없음): $SETTINGS_FILE env 블록")
+elif confirm "여기 env 블록에 넣을까?"; then
+  add_settings_env "$SETTINGS_FILE" "$ENV_VAR_NAME" "$STATE_PATH"
+  if git -C "$REPO_ROOT" rev-parse --show-toplevel >/dev/null 2>&1 && ! git -C "$REPO_ROOT" check-ignore -q "$SETTINGS_FILE" 2>/dev/null; then
+    warn ".claude/settings.local.json 이 .gitignore 에 없다. 세션 파일 경로가 커밋된다 — 한 줄 넣어라: .claude/settings.local.json"
+  fi
+else
+  SKIPPED+=("$ENV_VAR_NAME 수동 등록: $SETTINGS_FILE 의 env 블록")
+  warn "직접 넣어라: $SETTINGS_FILE 의 \"env\": { \"$ENV_VAR_NAME\": \"$STATE_PATH\" }"
+fi
+printf '\n'
+note "터미널에서 직접 MCP 를 띄우는 스크립트(verify-shot.mjs 류)용으로 셸 export 도 원하면 같이 넣는다."
 case "${SHELL:-}" in
   *zsh)  PROFILE="$HOME/.zshrc" ;;
   *bash) PROFILE="$HOME/.bashrc" ;;
   *)     PROFILE="$HOME/.profile" ;;
 esac
-say "셸 프로필: $PROFILE"
-if confirm "여기에 export 한 줄을 넣을까?"; then
+if confirm "$PROFILE 에도 export 한 줄을 넣을까? (선택)"; then
   add_export "$PROFILE" "$ENV_VAR_NAME" "$STATE_PATH"
-else
-  SKIPPED+=("$ENV_VAR_NAME 수동 등록: export $ENV_VAR_NAME=\"$STATE_PATH\"")
-  warn "직접 넣어라: export $ENV_VAR_NAME=\"$STATE_PATH\""
 fi
 pause "다음 단계로."
 
@@ -350,8 +377,7 @@ pause "다음 단계로."
 stage "Claude Code 재시작하고 확인"
 say "MCP 도구는 세션이 시작할 때만 붙는다. 지금 켜져 있는 세션에는 안 붙는다."
 printf '\n'
-step "터미널을 새로 열거나 'source $PROFILE' 를 돌린다."
-step "그 터미널에서 대상 레포로 가서 Claude Code 를 다시 켠다."
+step "대상 레포에서 Claude Code 를 다시 켠다 — 설정 파일의 env 는 세션 시작 때 읽힌다."
 step "'mcp__playwright__' 로 시작하는 도구가 뜨는지 본다."
 step "그 세션에서 로그인 벽 뒤 화면을 한 장 찍어 세션이 사는지 본다."
 printf '\n'
@@ -361,5 +387,5 @@ pause "확인했으면 Enter."
 
 finish
 note "세션 파일: $STATE_PATH (커밋 금지)"
-note "환경변수: $ENV_VAR_NAME"
+note "환경변수: $ENV_VAR_NAME → $SETTINGS_FILE env 블록"
 note "확인용 스크린샷: $SHOT_PATH"
