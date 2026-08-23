@@ -1,4 +1,4 @@
-// design-qa 세션 검증 — Playwright MCP 를 .mcp.json 과 같은 플래그로 띄워
+// qa scan 세션 검증 — Playwright MCP 를 .mcp.json 과 같은 플래그로 띄워
 // 화면 한 장을 찍는다. CLI `playwright screenshot` 로는 못 하는 일이다:
 // 거기엔 --grant-permissions 가 없어 local-network-access 가 거부되고,
 // 앱이 "Network Error" 를 그린다.
@@ -58,7 +58,7 @@ const call = (method, params) => new Promise(res => {
 await call('initialize', {
   protocolVersion: '2024-11-05',
   capabilities: {},
-  clientInfo: { name: 'design-qa-verify', version: '0' },
+  clientInfo: { name: 'qa-verify', version: '0' },
 })
 proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n')
 

@@ -13,7 +13,7 @@ description: 트랙의 QA 오라클(정답지) 노션 DB 항목을 갱신·확�
 
 | 값 | 결정 방법 |
 | --- | --- |
-| 정본 Doc · 항목 DB data source · title 키 | 대상 레포 `.design-qa/config.yaml` 의 `oracle:` 블록(`doc` · `data_source` · `title_key` · 선택 `view`) → 관례 문서(`CLAUDE.md` · `docs/agents/*` 류)가 지정한 정답지 → 인자·질문. 받은 값은 `config.yaml` 에 적어 다음부터 안 묻는다 |
+| 정본 Doc · 항목 DB data source · title 키 | 대상 레포 `.qa/config.yaml` 의 `oracle:` 블록(`doc` · `data_source` · `title_key` · 선택 `view`) → 관례 문서(`CLAUDE.md` · `docs/agents/*` 류)가 지정한 정답지 → 인자·질문. 받은 값은 `config.yaml` 에 적어 다음부터 안 묻는다 |
 
 `data_source` 는 `collection://…` 형태여야 행 조회가 된다 — 페이지 URL 만 받았으면 `fetch` 로 데이터 소스 URL 을 먼저 얻는다. `title_key` 기본값은 `항목 ID`. `view` 는 DB 뷰 URL 로, SQL 쿼터에 막혔을 때만 쓴다.
 
