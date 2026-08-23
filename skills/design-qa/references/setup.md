@@ -11,12 +11,14 @@
 ```
 .design-qa/
   ledger.yaml            # 대장 — 앱 단위. 트랙보다 오래 산다
-  config.yaml            # 존 URL·피그마 기본값·시트 URL·세션 경로·뷰포트·동적 식별자·진입/종결 상태
-  storage-state.json     # 로그인 세션. design-qa-session-wizard.sh 가 만든다
+  config.yaml            # 존 URL·피그마 기본값·시트 URL·세션 경로·뷰포트·동적 식별자·진입/종결 상태·오라클 좌표
+  judge-prompt.md        # 판정 문안 사본. scan 이 references/judge.md 에서 매번 덮어쓴다 — 손대지 않는다
   cache/<file_key>/<figma.version>/<node_id>.png
-  shots/<run>/           # 실물 스크린샷
-  runs/<ISO 8601>.yaml   # scan 실행 기록
+  runs/<run>.yaml        # scan 실행 기록 (사람이 읽는 것)
+  runs/<run>/            # 섹션 스크린샷 <화면>__<섹션>.png + 행 생성 작업 파일(pairs·rows·pages·upload-ids)
 ```
+
+세션 파일(`storageState`)은 여기 두지 않는다 — 대상 레포의 시각 회귀 하네스가 쓰는 자리가 있으면 그 경로를 `config.yaml` `storage_state`로 가리켜 파일 하나로 양쪽이 돈다. MCP 에는 `.claude/settings.local.json` 의 `env` 블록이 경로를 준다(아래 「세션 파일」).
 
 대장과 설정을 가르는 이유는 수명이다 — 대장은 앱 단위, 설정은 존·트랙마다. 동적 세그먼트 식별자는 환경변수가 아니라 `config.yaml`에 직접 적는다. 포맷은 YAML — 주석이 사람 검수 자산의 본체다("여기서 완료를 누르면 실제 주문이 나간다").
 
@@ -144,10 +146,10 @@ before:
 
 ## 뷰포트는 390이다
 
-하네스의 375가 아니다(`config.yaml`에서 덮는다). 390은 breakpoint를 넘지 않아 375의 레이아웃 분기를 보면서 시안 폭에 맞춘다. MCP 인자 `--viewport-size=390x844`. 세션 파일은 환경변수 `PLAYWRIGHT_MCP_STORAGE_STATE`로 넘어간다 — `--isolated` 없이 `--storage-state`만 주면 조용히 무시된다.
+하네스의 375가 아니다(`config.yaml`에서 덮는다). 390은 breakpoint를 넘지 않아 375의 레이아웃 분기를 보면서 시안 폭에 맞춘다. MCP 인자 `--viewport-size=390x844`. 세션 파일은 환경변수 `PLAYWRIGHT_MCP_STORAGE_STATE`로 넘어간다 — `--isolated` 없이 `--storage-state`만 주면 조용히 무시된다. 환경변수는 셸 export 가 아니라 대상 레포 `.claude/settings.local.json` 의 `env` 블록으로 준다 — 설정의 `env` 는 세션과 자식 프로세스(MCP 서버)에 적용되고 런처가 GUI 든 터미널이든 같다. 셸 rc 의 export 는 GUI 런처로 뜬 Claude Code 에 닿지 않는다(2026-08-22 실측, [`rationale.md`](rationale.md#세션-경로가-우회로로-간-이유)).
 
 ## 세션 파일
 
-`.agents/design-qa/design-qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → 환경변수 등록. 만료는 수동 갱신.
+`.agents/design-qa/design-qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → `.claude/settings.local.json` `env` 등록(셸 export 는 선택) → 세션 재시작. 만료는 수동 갱신.
 
 검증은 CLI가 아니라 MCP 표면에서 한다 — CLI `playwright screenshot`에는 `--grant-permissions`가 없어 앱이 `Network Error`만 그린다. `.agents/design-qa/verify-shot.mjs`가 같은 플래그로 한 장 찍고 실패 모양을 종료코드로 알린다.

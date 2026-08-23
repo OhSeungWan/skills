@@ -26,7 +26,7 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
 
 `skills/qa/SKILL.md`의 값 결정 표와 시트 스키마를 그대로 물려받는다 — QA 시트 · 통합 브랜치/통합 PR · team 존 · 스펙 이슈. 시트 부모 페이지만 안 물려받는다(시트를 만들지 않으므로). 스펙 이슈는 `setup`에서 피그마 URL을 캐낼 때만 읽는다.
 
-전용 값은 대상 레포 `.design-qa/config.yaml`: 존 URL · 피그마 `file_key`/`page_id` 기본값 · QA 시트 URL · `storageState` 경로 · 뷰포트 · 동적 세그먼트 식별자 · 진입 상태 이름 · 종결 상태 이름.
+전용 값은 대상 레포 `.design-qa/config.yaml`: 존 URL · 피그마 `file_key`/`page_id` 기본값 · QA 시트 URL · `storageState` 경로 · 뷰포트 · 동적 세그먼트 식별자 · 진입 상태 이름 · 종결 상태 이름 · 오라클 좌표(`oracle:` 블록 — `/oracle` 스킬이 같은 자리를 읽는다).
 
 **실행 위치는 대상 레포다.** `.design-qa/`·`.gitignore`·스크린샷 상대 경로가 전부 거기 기준이다. Playwright MCP는 플러그인이 등록하므로(`plugin.json`의 `mcpServers`) 어느 레포에서 켜도 `mcp__*playwright*` 도구가 뜬다. 안 뜨면 세션을 다시 켠다 — MCP는 세션 시작 때만 붙는다.
 
@@ -40,7 +40,7 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
 
 순서대로. 하나라도 못 넘기면 멈추고 무엇이 없는지 보고한다.
 
-1. `.design-qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`.
+1. `.design-qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`. 대상 레포 `.claude/settings.local.json`의 `env.PLAYWRIGHT_MCP_STORAGE_STATE`가 있는가 — 없으면 세션 파일이 MCP에 안 닿는다. 위저드(`.agents/design-qa/design-qa-session-wizard.sh`)로 안내하고 멈춘다.
 2. QA 시트가 있는가. 없으면 `/qa collect`로 안내하고 멈춘다.
 3. **상태 이름을 찾는다.** 시트 스키마를 1회 읽어 `해결 여부`의 타입(`select`·`status` 둘 다 실재)과 옵션 목록을 얻고, **공백을 무시해** 진입 상태 `사람 확인 필요`와 종결 상태 `배포 완료`를 찾아 `config.yaml`에 적는다. 진입 상태를 못 찾으면 지어내지 않고 옵션 목록을 보여 주고 고르게 한다. 종결 상태를 못 찾으면 회귀 검사를 끄되 리포트에 그 사실을 적는다.
 4. **title 프로퍼티를 타입으로 찾는다.** 이름이 `증상`이 아닌 시트가 실재한다.
@@ -60,12 +60,12 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
 6. **섹션 촬영.** 순서:
    1. `hide_fixed: false` 섹션(헤더·탭바)을 **먼저** 찍는다.
    2. 나머지 섹션마다 [`setup.md`의 숨김·가드 호출](references/setup.md#숨김가드-배관) 한 번 — 섹션 밖 `fixed`/`sticky`를 `visibility: hidden !important`로 숨기고, 대상 박스와 겹치는 잔여 고정 요소 수와 `box`를 돌려받는다. **잔여가 0이 아니면 판정에 보내지 않고 가림 잔여로 센다.**
-   3. `browser_take_screenshot`에 `target: <selector>`, `scale: 'css'`, `filename`은 `.design-qa/shots/<run>/<화면>-<섹션>.png` **절대 경로**. `capture: viewport`면 `target` 없이 뷰포트 한 장.
+   3. `browser_take_screenshot`에 `target: <selector>`, `scale: 'css'`, `filename`은 `.design-qa/runs/<run>/<화면>__<섹션>.png` **절대 경로**. `capture: viewport`면 `target` 없이 뷰포트 한 장.
    4. 촬영 뒤 같은 배관의 복원 호출로 숨김을 푼다. 안 풀면 다음 섹션이 빈 헤더를 찍는다.
 7. **시안 확보와 좌표계 통일.** `.design-qa/cache/<file_key>/<figma.version>/<node_id>.png`가 있으면 그걸 쓴다. 없으면 피그마 `get_screenshot`(`maxDimension: 1568`)의 단명 URL을 curl로 그 경로에 떨구고 `sips --resampleWidth <original_width>`로 자연 css 폭에 굳힌다(`original_width`는 응답 필드 — 첫 실행에서 필드명을 확인해 확정한다). 인라인 base64는 쓰지 않는다(캐시 불가). 캐시 무효화는 디렉터리 이름이 전부다 — 지우는 코드를 짜지 않는다.
 
    **폭 게이트.** 6번의 `box.width`와 `original_width`의 차가 **2px를 넘으면** 판정에 보내지 않고 좌표계 불일치로 센다. 상위 노드를 지목했거나 자식으로 내려간 섹션에서 갈린다 — 갈리면 계약의 "환산하지 마라"가 거짓이 되고 모든 `근거` 수치가 조용히 틀린다.
-8. **섹션당 서브에이전트 하나로 판정.** 프롬프트는 [`references/judge.md`](references/judge.md) 문안 그대로 + 화면 이름 · 섹션 이름 · `ignore` 목록 · **두 png의 절대 경로**(실물 먼저). 서브에이전트가 `Read`로 두 장을 본다. 화면 전체 샷은 주지 않는다 — 섹션 크롭으로 좁힌 효과가 되돌아간다.
+8. **섹션당 서브에이전트 하나로 판정.** 프롬프트는 [`references/judge.md`](references/judge.md) 문안 그대로 + 화면 이름 · 섹션 이름 · `ignore` 목록 · **두 png의 절대 경로**(실물 먼저). 문안은 scan 앞머리에서 `judge.md`의 인용 블록을 `.design-qa/judge-prompt.md`로 **덮어쓰고** 서브에이전트에 그 경로를 준다 — 사본을 손으로 고치지 않는다, 다음 scan이 덮는다(2026-08-22 실행의 사본이 레퍼런스보다 낡은 채 쓰인 실측). 서브에이전트가 `Read`로 두 장을 본다. 화면 전체 샷은 주지 않는다 — 섹션 크롭으로 좁힌 효과가 되돌아간다.
 
    **`degraded: true` 섹션**은 두 이미지를 같은 비율로 세로 분할한다 — 한 장 css 1500px 이하, 인접 장 15% 겹침(`sips --cropToHeightWidth`). 장마다 판정 하나, 프롬프트에 "더 큰 섹션을 잘라낸 한 장"이라고 알린다. 지문 키에 장 번호를 붙이지 않는다. 이 섹션의 `문구`·`에셋` 판정은 받지 않고 흐림으로 버린 갈래로 센다 — 시안이 업스케일이라 글자·아이콘 세부가 없다.
 9. **판정 거르기.** 순서대로:
@@ -86,37 +86,50 @@ description: 트랙이 건드린 화면을 team 존에서 찍어 피그마 시�
 
 ## 리포트
 
-터미널에 찍고 같은 내용을 `.design-qa/runs/<ISO 8601>.yaml`로 남긴다. 읽는 코드는 짜지 않는다 — 사람이 열어 보고 쌓이면 폴더째 지운다.
+터미널에 찍고 같은 내용을 `.design-qa/runs/<run>.yaml`로 남긴다(`<run>`은 콜론 없는 ISO — 디렉터리 이름과 같다). 읽는 코드는 짜지 않는다 — 사람이 열어 보고 쌓이면 폴더째 지운다. 실물 형태(2026-08-22 실행):
 
 ```yaml
-run: 2026-08-22T10:31:00+09:00
-figma_version: 2026-08-20T02:11:43Z
-screens: [home, chat-room]
-counts:
-  clean: 7            # 무결 판정 섹션
-  low_confidence: 2
-  regression: 0
-  uncovered: 1
-  stale: 1
-  design_defect: 0
-  pair_failed: 0
-  pair_rejected: 0
-  split: 1            # 분할 판정 섹션
-  overlay_leftover: 0
-  width_mismatch: 0
-  blur_dropped: 1     # 분할 섹션에서 버린 문구·에셋 갈래
-  unmeasured: 1       # 근거가 측정 불가
-clean_sections: [home/hero, home/cta, chat-room/room-bar]
-items:
-  - key: home/hero/여백
-    kind: 여백
-    target: 코드
-    confidence: 높음
-    symptom: 홈 > 히어로 타이틀 아래 여백 좁음
-    fate: https://notion.so/...      # 시트 행 URL | low_confidence | design_defect | regression:<행 URL> | blur_dropped | duplicate
+run: 2026-08-22T16-45-45
+figma_version: "2026-08-20T06:50:59Z"
+zone: <team 존 URL>
+screens: [chrome, chat-list, chat-room, …]
+captures: 10 · sections: 28 · 판정 투입: 25
+
+summary:                 # 터미널 표와 같은 칸. 0이 아닌 칸엔 어디서 났는지 주석
+  무결 판정: 5
+  낮은 확신: 2
+  회귀: 0
+  미커버: 2              # room-orders(unpaired) · order-create(식별자 비어 있음)
+  시안 대기: 1
+  시안 결함: 0
+  짝짓기 실패: 0
+  짝짓기 거부: 1         # chat-list
+  시트 행 생성: 28  (#23~#50)
+  중복으로 버림: 8
+  분할 판정: 0
+  가림 잔여: 0
+  좌표계 불일치: 1
+  selector 없음: 1
+  흐림으로 버린 갈래: 0
+  측정 불가: 4
+
+무결 판정 (화면/섹션):
+  - chat-room/room-tabbar
+시트 행 (28):
+  - key: chrome/top-nav/여백 | 확신도: 높음 | <증상 한 줄> | <행 URL>
+중복으로 버림 (기존 행과 키 충돌):
+  - <키> | 확신도: <값> | <증상> | 중복 (#기존 번호)
+낮은 확신으로 버림:
+  - <키> | <증상> | <버린 이유>
+짝짓기 거부로 버림 (<화면> 전체, 판정 내용은 참고용):
+  - <키> | <증상> (<확신도>)
+실측 관찰 (갈래 밖, 사람 판단):
+  - <한 줄>
 ```
 
-`fate`가 이 파일의 값이다 — 없으면 나중에 오탐률을 재구성할 수 없다.
+**항목의 행선지는 어느 목록에 있느냐가 말한다** — 시트 행 · 중복 · 낮은 확신 · 거부 · 흐림. 이 목록들이 오탐률 재구성의 원천이라 판정 하나도 목록 밖에 두지 않는다. `실측 관찰`은 여덟 갈래 밖이라 시트에 못 올리는 것을 버리지 않기 위한 자리다.
+
+같은 이름의 디렉터리 `runs/<run>/`에 섹션 스크린샷(`<화면>__<섹션>.png`)과 행 생성 파이프라인의 작업 파일(`pairs.json` · `rows.json` · `pages.json` · `upload-ids.txt`)이 남는다. 사람이 읽는 건 yaml 하나다.
 
 터미널에는 위 숫자를 표로 찍고 항목마다 증상 한 줄을 뿌린다. 늘면 할 일:
 
@@ -135,7 +148,7 @@ items:
 
 ## 오탐의 정답 신호
 
-시트에 올라간 행이 오탐이면 사람이 `해결 여부`를 `사람 확인 필요`로 두고 `비고`에 `버그 아님` 한 줄을 적는다 — `qa` 상태 머신에 별도 상태를 두지 않는다. 다음 scan의 5번 조회가 이 문자열을 같이 받아 `runs/`의 `fate`와 대조하면 오탐률이 나온다.
+시트에 올라간 행이 오탐이면 사람이 `해결 여부`를 `사람 확인 필요`로 두고 `비고`에 `버그 아님` 한 줄을 적는다 — `qa` 상태 머신에 별도 상태를 두지 않는다. 다음 scan의 5번 조회가 이 문자열을 같이 받아 `runs/`의 `시트 행` 목록과 대조하면 오탐률이 나온다.
 
 ## 승격
 

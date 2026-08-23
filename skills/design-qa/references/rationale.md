@@ -56,6 +56,10 @@
 
 셋 다 판정에는 "시안과 아주 다름"으로 보인다: 로그인 화면(세션 미주입·만료) · `Network Error` 한 줄(앱 셸은 정상 렌더되므로 가장 위험하다 — `--grant-permissions local-network-access` 누락이나 VPN) · 파일이 안 생김(상대 `filename`이 서버 cwd에 떨어지는 것을 0.0.79에서 관측). 세션은 첫 화면에서만 죽지 않고 중간에도 만료되며, 그 모양이 정확히 미커버다 — 만료를 그대로 두면 사람이 멀쩡한 대장을 뜯는다.
 
+## 세션 경로가 우회로로 간 이유
+
+2026-08-22 실행은 `PLAYWRIGHT_MCP_STORAGE_STATE` 대신 `browser_run_code_unsafe` 로 쿠키 주입 스크립트를 돌렸다 — 조사 문서가 기본 경로에 두지 말라고 한 도구다. 2026-08-23 원인 실측: MCP 0.0.79 번들은 그 환경변수를 `options.storageState` 로 읽는다(메커니즘은 멀쩡하다). 안 닿은 건 전달이다 — 위저드가 export 를 `~/.zshrc` 에 넣는 구조였고 그마저 기록돼 있지 않았으며, 셸 rc 는 GUI 런처(Orca)로 뜬 Claude Code 가 읽지 않는다. 그래서 위저드가 대상 레포 `.claude/settings.local.json` 의 `env` 블록에 쓰도록 바꿨다 — 설정의 `env` 는 세션과 자식 프로세스에 적용된다(공식 문서). 같은 실측에서 `.design-qa/judge-prompt.md` 사본이 `references/judge.md` 보다 낡은 채 쓰였다(목록 개수 무시 규칙 누락) — 그래서 사본은 scan 이 매번 덮어쓴다.
+
 ## 시트 쪽 사실
 
 - `해결 여부`가 `select`인 시트와 `status`인 시트가 둘 다 실재한다. 상태 이름에 공백이 다른 시트도 있다(`사람 확인 필요`/`사람확인필요`).
