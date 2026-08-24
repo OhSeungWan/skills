@@ -60,6 +60,16 @@
 
 화면의 `flows:`를 그 화면의 **섹션 촬영이 전부 끝난 뒤** 돈다 — 검사가 라우트를 옮기므로 촬영과 섞으면 촬영 시점이 흔들린다. 기대값의 출처와 경계는 [ADR-0004](../../../.agents/adr/0004-flow-checks-derive-from-oracle.md) — scan은 오라클을 부르지 않는다(setup이 대장에 굳힌 것을 실행만 한다).
 
+실행 경로는 둘, **기본은 컴파일**이다(11검사 실측: MCP ~4분 30초 → 컴파일 1분 48초):
+
+```sh
+python3 <플러그인>/.agents/qa/compile-flows.py <대상 레포 루트>   # 대장 → flows.json (path {키} 치환 · requires 미커버 분리 · 지문 키 채번)
+cd <대상 레포 루트>
+QA_FLOWS=.qa/runs/flow-latest/flows.json npx playwright test -c <플러그인>/.agents/qa/flow-runner.config.mjs
+```
+
+러너는 대상 레포의 `@playwright/test`를 빌린다 — 커밋되는 파일은 여전히 `.gitignore` 한 줄이다. 판정만 하고(아래 의미론 그대로) 결과는 `results.json`(JSON 리포터), 실패 스크린샷은 `artifacts/`(playwright가 실행 전에 비우는 폴더라 다른 산출물을 두지 않는다). 행 생성·리포트는 scan이 결과 JSON을 읽어서 한다. **MCP 경로(아래 1~3을 에이전트가 도구로)는 첫 실행·디버깅용** — 새 검사의 스키마 검증이나 실패를 눈으로 재현할 때.
+
 1. 화면 `path` 재도달 → `before` → `steps`. 조작은 도달 조작 3종뿐이고 `forbidden` 문구는 검사 스텝이어도 절대 누르지 않는다.
 2. `expect`를 위에서 아래로 평가한다. `url`·`text`·`no_text`는 프라이밍 없이 즉시(필요하면 `browser_wait_for`로 문구 대기), `attr`은 `browser_evaluate`(a11y 스냅샷에 `aria-current`가 없다), `back`은 `browser_navigate_back`.
 3. **첫 실패에서 그 검사를 멈추고** 실패 시점 뷰포트 스크린샷 한 장을 `runs/<run>/<화면>__flow-<source>.png`로 남긴다. 남은 expect는 평가하지 않는다 — 라우트가 이미 어긋난 뒤의 실패는 전부 파생이다.
