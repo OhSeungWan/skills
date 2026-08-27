@@ -82,6 +82,19 @@ repo 특정값(base·브랜치 네이밍·트래커·미러)은 감지하거나 
 - fix 는 앱을 띄워 재현하지 않는다 — 코드에서 `file:line` 으로 원인을 짚은 항목만 고치고, 못 짚은 건 사유를 적어 사람에게 되던진다.
 - 반복은 스킬 밖 — `/loop 30m /qa fix`. 로직/플로우 검사(버튼·라우팅 단언)는 [#22](https://github.com/OhSeungWan/skills/issues/22)에서 scan 에 붙는다.
 
+### tiki-taka — FE↔BE 스레드 추적
+
+BE가 변경을 쌓는 슬랙 스레드 하나를 대상 레포 `.tiki/ledger.yaml`(원장)으로 비춰,
+사람 기억이 하던 추적을 실측으로 바꾼다. 놓침 · "이거 적용했었나?" · 중복 요청 세 가지를 잡는다.
+
+| 호출 | 시점 | 하는 일 |
+|---|---|---|
+| `/tiki-taka setup` | 처음 · 재백필 | 스레드 전체를 읽어 원장 구축 + 항목별 반영 여부 실측 |
+| `/tiki-taka` (sync) | 작업 시작 전 · "뭐 바뀌었대?" | 커서 이후 새 메시지 소진 → 미반영 변경 실측 → 골라서 적용 |
+| `/tiki-taka ask` | BE에 요청 보낼 때 | 원장+스레드 전문으로 중복 검사 → 승인 후 스레드에 전송·기록 |
+
+정본은 스레드고 원장은 그림자다. `applied`는 코드에서 근거를 찾아야만 붙는다 — 기억으로 붙이지 않는다.
+
 ## MCP 서버
 
 `.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844 --grant-permissions local-network-access`).
