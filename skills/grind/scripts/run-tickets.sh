@@ -43,12 +43,18 @@ GATES="$GITDIR/matt-context/repo-gates.md"
 LOGDIR="$GITDIR/matt-context/ticket-runs/$INTEGRATION"
 mkdir -p "$LOGDIR"
 
-echo "repo=$REPO  통합브랜치=$INTEGRATION  통합PR=#$INTEGRATION_PR  티켓=$*"
+echo "repo=$REPO  통합브랜치=$INTEGRATION  통합PR=#$INTEGRATION_PR  머지=$MERGE_FLAG  티켓=$*"
 echo "로그: $LOGDIR    주입: 통합 PR #$INTEGRATION_PR 코멘트"
 
 # 주입점 조회. 통합 PR 코멘트 중 리액션이 안 붙은 것 = 아직 아무 티켓도 처리하지 않은 항목.
 # 커서 파일을 두지 않는 이유: 소진 상태가 데이터에 붙어 살아야 워크트리를 지워도 남고, PR UI에서 사람이 본다.
-UNREAD="gh api repos/$REPO/issues/$INTEGRATION_PR/comments --paginate --jq '.[] | select((.reactions[\"+1\"] // 0) == 0 and (.reactions.eyes // 0) == 0) | \"--- comment id=\\(.id) by=\\(.user.login)\\n\\(.body)\"'"
+# FILTER 를 따로 두는 이유: self-check.sh 가 이 줄을 그대로 뽑아 검사한다 — 사본 검사는 본체를 고쳤을 때 거짓 통과를 낸다.
+FILTER='.[] | select((.reactions["+1"] // 0) == 0 and (.reactions.eyes // 0) == 0)'
+UNREAD="gh api repos/$REPO/issues/$INTEGRATION_PR/comments --paginate --jq '$FILTER | \"--- comment id=\\(.id) by=\\(.user.login)\\n\\(.body)\"'"
+
+# 머지 방식은 repo 설정에서 감지한다 — track 값 결정과 같은 축. 스쿼시 우선.
+MERGE_FLAG=$(gh repo view --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+  -q 'if .squashMergeAllowed then "--squash" elif .rebaseMergeAllowed then "--rebase" else "--merge" end')
 
 # 레포별 검증 게이트. 있으면 프롬프트에 통째로 끼운다.
 if [ -f "$GATES" ]; then
@@ -153,7 +159,7 @@ $GATES_TEXT
    - **애매하다** → 중단한다.
 7. /track ticket 으로 티켓 PR 개설(브랜치는 이미 있다). base = $INTEGRATION.
 8. PR을 연 직후 \`orca worktree set --worktree "path:$WT" --workspace-status in-review\` 를 실행한다.
-9. \`gh pr checks <티켓PR> --watch\` 로 CI 통과 대기 후 \`gh pr merge <티켓PR> --squash --delete-branch\`.
+9. \`gh pr checks <티켓PR> --watch\` 로 CI 통과 대기 후 \`gh pr merge <티켓PR> $MERGE_FLAG --delete-branch\`.
 10. /track merged 실행. dry-run 요약은 출력으로 남기되 승인 없이 일괄 실행한다.
 11. 소진 표시. 3항에서 읽어 **반영한** 코멘트마다:
     \`gh api -X POST repos/$REPO/issues/comments/<id>/reactions -f content=+1\`
@@ -166,6 +172,7 @@ $GATES_TEXT
 그 경우 티켓 이슈 #$n 을 close 하지 않는다 — 그게 이 러너의 실패 신호다.
 EOF
 )" \
+    --model "${GRIND_MODEL:-claude-opus-5}" \
     --dangerously-skip-permissions \
     --output-format stream-json --verbose \
     2>"$LOGDIR/ticket-$n.err" ) \
@@ -184,9 +191,12 @@ EOF
   fi
 
   orca worktree set --worktree "path:$WT" --workspace-status completed >/dev/null
-  echo "=== 티켓 #$n 완료 $(date +%H:%M:%S) ==="
+  # 성공한 티켓의 워크트리는 바로 지운다 — 브랜치는 머지로 이미 삭제됐고, 재개가 필요한 건 실패 티켓뿐이다.
+  orca worktree rm --worktree "path:$WT" --force >/dev/null \
+    || echo "  (주의: 워크트리 정리 실패 — 수동: orca worktree rm --worktree \"path:$WT\" --force)"
+  echo "=== 티켓 #$n 완료 $(date +%H:%M:%S) — 워크트리 정리됨 ==="
 done
 
 echo
 echo "전부 완료. 통합 PR: gh pr view $INTEGRATION_PR --web"
-echo "워크트리는 보드에 남겨 뒀다. 정리: orca worktree rm --worktree name:<브랜치명> --force"
+echo "워크트리는 티켓 완료마다 정리했다 — 남아 있으면 실패 티켓 것이다."

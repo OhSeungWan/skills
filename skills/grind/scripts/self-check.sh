@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # run-tickets.sh 에서 CI 가 절대 실행하지 않는 두 조각을 검사한다.
 # 둘 다 jq 식이고 하나는 프롬프트 문자열 안에, 하나는 파이프라인 안에 산다.
+# 식은 여기 복붙하지 않고 본체에서 뽑는다 — 사본을 검사하면 본체를 고쳤을 때 낡은 식이 통과한다.
 set -euo pipefail
 
-FILTER='.[] | select((.reactions["+1"] // 0) == 0 and (.reactions.eyes // 0) == 0) | .id'
+RUNNER="$(cd "$(dirname "$0")" && pwd)/run-tickets.sh"
+eval "$(grep '^FILTER=' "$RUNNER")"
+eval "$(sed -n "/^RENDER='/,/else empty end'/p" "$RUNNER")"
+[ -n "${FILTER:-}" ] && [ -n "${RENDER:-}" ] || { echo "FAIL: run-tickets.sh 에서 FILTER/RENDER 를 못 뽑았다" >&2; exit 1; }
 
-got=$(jq -r "$FILTER" <<'JSON' | paste -sd, -
+got=$(jq -r "$FILTER | .id" <<'JSON' | paste -sd, -
 [
  {"id":1,"reactions":{"+1":0,"eyes":0}},
  {"id":2,"reactions":{"+1":1,"eyes":0}},
@@ -23,12 +27,7 @@ echo "ok: 미소진 필터 = $got"
 # --- 2. 렌더 파이프라인이 비-JSON 줄에서 producer 를 안 끊는가 -------------------
 # 실측 사고: MCP 경고가 stream-json 과 같은 stdout 으로 새서 jq 가 죽고,
 # EPIPE 가 tee 를 거쳐 claude 까지 올라가 티켓이 통째로 끊겼다 (exit 144).
-RENDER='
-  fromjson? // empty
-  | if .type=="assistant" then
-      (.message.content[]? | select(.type=="text") | .text | select(startswith("##")))
-    elif .type=="result" then "  ▪ result=\(.subtype) turns=\(.num_turns // "?")"
-    else empty end'
+# RENDER 는 위에서 본체로부터 eval 로 뽑았다.
 
 raw=$(mktemp) rendered=$(mktemp)
 trap 'rm -f "$raw" "$rendered"' EXIT
