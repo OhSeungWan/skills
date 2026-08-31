@@ -9,3 +9,6 @@ docs/
 # Claude Code 로컬 상태 (공유 설정은 커밋 가능하도록 통째로 무시하지 않는다)
 .claude/settings.local.json
 .claude/worktrees/
+
+# 학습 워크스페이스 (/teach — 로컬 전용, 커밋 금지)
+.teach/
