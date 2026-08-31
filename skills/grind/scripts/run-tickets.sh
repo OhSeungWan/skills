@@ -3,8 +3,8 @@
 # 티켓 자동 소진 러너 — 티켓 1장 = orca 워크트리 1개 = claude 프로세스 1개 = 컨텍스트 0에서 시작.
 #
 # 사용법: 통합 브랜치를 체크아웃한 워크트리에서 실행한다.
-#   .git/matt-context/run-tickets.sh 193
-#   .git/matt-context/run-tickets.sh 193 194 196 212 213
+#   .git/shared-store/run-tickets.sh 193        (기존 레포는 .git/matt-context/)
+#   .git/shared-store/run-tickets.sh 193 194 196 212 213
 #
 # 전제·진행상황 보는 자리·실패 읽는 법·함정은 grind 스킬의 SKILL.md 가 정본이다.
 # 아래 주석은 코드가 왜 이 모양인지만 적는다.
@@ -39,9 +39,17 @@ case "$GITDIR" in /*) ;; *) GITDIR="$ROOT/$GITDIR" ;; esac
 # $ROOT(= --show-toplevel)는 등록 목록에 없어 repo_not_found 로 즉사한다.
 # --git-common-dir 은 워크트리에서도 항상 메인 체크아웃의 .git 을 가리키므로 그 부모가 정답이다.
 ORCA_REPO=$(dirname "$GITDIR")
-GATES="$GITDIR/matt-context/repo-gates.md"
-LOGDIR="$GITDIR/matt-context/ticket-runs/$INTEGRATION"
+# 스토어 디렉터리 — shared-store 가 정본, 기존 matt-context 스토어가 있으면 그대로 쓴다(shared-store link.sh 와 같은 해석).
+STORE="$GITDIR/shared-store"
+[ -d "$GITDIR/matt-context" ] && [ ! -d "$STORE" ] && STORE="$GITDIR/matt-context"
+GATES="$STORE/repo-gates.md"
+LOGDIR="$STORE/ticket-runs/$INTEGRATION"
 mkdir -p "$LOGDIR"
+
+# 머지 방식은 repo 설정에서 감지한다 — track 값 결정과 같은 축. 스쿼시 우선.
+# (echo 보다 먼저 와야 한다 — set -u 라 미정의 참조 즉사)
+MERGE_FLAG=$(gh repo view --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
+  -q 'if .squashMergeAllowed then "--squash" elif .rebaseMergeAllowed then "--rebase" else "--merge" end')
 
 echo "repo=$REPO  통합브랜치=$INTEGRATION  통합PR=#$INTEGRATION_PR  머지=$MERGE_FLAG  티켓=$*"
 echo "로그: $LOGDIR    주입: 통합 PR #$INTEGRATION_PR 코멘트"
@@ -51,10 +59,6 @@ echo "로그: $LOGDIR    주입: 통합 PR #$INTEGRATION_PR 코멘트"
 # FILTER 를 따로 두는 이유: self-check.sh 가 이 줄을 그대로 뽑아 검사한다 — 사본 검사는 본체를 고쳤을 때 거짓 통과를 낸다.
 FILTER='.[] | select((.reactions["+1"] // 0) == 0 and (.reactions.eyes // 0) == 0)'
 UNREAD="gh api repos/$REPO/issues/$INTEGRATION_PR/comments --paginate --jq '$FILTER | \"--- comment id=\\(.id) by=\\(.user.login)\\n\\(.body)\"'"
-
-# 머지 방식은 repo 설정에서 감지한다 — track 값 결정과 같은 축. 스쿼시 우선.
-MERGE_FLAG=$(gh repo view --json squashMergeAllowed,rebaseMergeAllowed,mergeCommitAllowed \
-  -q 'if .squashMergeAllowed then "--squash" elif .rebaseMergeAllowed then "--rebase" else "--merge" end')
 
 # 레포별 검증 게이트. 있으면 프롬프트에 통째로 끼운다.
 if [ -f "$GATES" ]; then
@@ -67,6 +71,27 @@ else
 
 (아직 없음 — package.json 과 CI 워크플로에서 직접 알아내고, 알아낸 것을 \`$GATES\` 에 적어 둘 것.)"
   echo "게이트: (없음 — 에이전트가 알아내서 $GATES 에 적는다)"
+fi
+
+# 구현 규율 — /grind setup 이 구운 파일이 있으면 그걸, 없으면 아래 기본값을 프롬프트에 끼운다.
+# 조건부 한 줄 참조는 판이 무시한다(실측: 94판 중 스킬 로드 5판) — 실행은 프롬프트의 무조건 번호 단계가 하고,
+# 절 이름 「구현 규율」·「자가 리뷰」 는 그 단계가 가리키는 고정 계약이다. 스킬 이름은 여기 하드코딩하지 않는다.
+GUIDE="$STORE/impl-guide.md"
+if [ -f "$GUIDE" ]; then
+  GUIDE_TEXT="$(cat "$GUIDE")"
+  echo "규율: $GUIDE"
+else
+  GUIDE_TEXT="## 구현 규율 (기본값 — /grind setup 으로 레포 맞춤 생성 가능)
+
+판정 타입: 로직 | 버그수정 | UI·배선
+- **로직**(새 계산·조건·상태 전이가 붙는다): 실패하는 테스트를 먼저 쓰고(red) 통과시킨다(green). 테스트는 공개 인터페이스에서, 한 번에 한 조각.
+- **버그수정**(기존 동작이 틀렸다): 고치기 전에 증상이 드러나는 확인 방법을 만들고, 반증 가능한 가설 3개를 적어 순위대로 검증한다.
+- **UI·배선**(마크업·스타일·문구·단순 연결): 바로 구현한다.
+
+## 자가 리뷰
+
+\`git diff origin/$INTEGRATION...HEAD\` 를 두 축으로 본다 — 스펙(티켓이 요구한 것이 빠짐없이, 요구 밖 변경 없이), 표준(이 레포의 기존 컨벤션과 어긋난 곳)."
+  echo "규율: (기본값 — /grind setup 으로 레포 맞춤 생성 가능)"
 fi
 
 # `##` 로 시작하는 에이전트 마커와 결과 한 줄만 남긴다.
@@ -146,22 +171,27 @@ for n in "$@"; do
 3. 주입점을 읽는다 — 통합 PR 코멘트 중 **리액션이 안 붙은 것**:
    \`$UNREAD\`
    나오는 항목은 티켓 본문보다 최신인 사실이다. 범위·계약·AC를 바꾸면 **바뀐 쪽으로 구현한다.**
-4. mattpocock-skills 계열로 구현한다. 로직이 붙으면 tdd, 기존 동작이 깨지면 diagnosing-bugs.
+4. 아래 「구현 규율」 절의 판정 타입 중 하나로 티켓 성격을 판정해 한 줄 출력한다: \`## 판정: <타입>\`
+   그 타입의 지침대로 구현한다. 지침이 스킬 로드를 시키면 Skill 툴로 로드한 뒤 구현한다.
+
+$GUIDE_TEXT
 5. 검증을 실측한다. **아래 「이 레포의 검증 게이트」 절이 정본이다.** 그 절이 비어 있으면
    \`package.json\` 스크립트와 CI 워크플로를 읽어 실제로 돌아가는 것을 고르고, 통과한 명령이 실제로
    변경 파일을 검사했는지까지 확인한다(설정이 안 걸려 무연산으로 통과하는 린터가 흔하다).
    새로 알아낸 게이트 사실이 있으면 마지막에 \`$GATES\` 에 한 줄로 추가한다.
 
 $GATES_TEXT
-6. **티켓 PR 본문을 쓰기 직전에 3항을 한 번 더 돈다.** 구현하는 동안 새 코멘트가 붙었을 수 있다. 새 항목마다 셋 중 하나로 판정한다:
+6. 티켓 PR 을 열기 전에 위 「자가 리뷰」 절을 실행한다. 스펙 출처는 티켓 이슈 #$n.
+   명백한 위반은 지금 고치고, 판단성 지적과 스펙 미달은 티켓 PR 본문에 「리뷰 포인트」 절로 남긴다.
+7. **티켓 PR 본문을 쓰기 직전에 3항을 한 번 더 돈다.** 구현하는 동안 새 코멘트가 붙었을 수 있다. 새 항목마다 셋 중 하나로 판정한다:
    - **이번 PR의 코드를 틀린 것으로 만든다** → PR을 열지 말고 중단한다.
    - **이번 범위에 안 닿는 추가 작업이다** → 그 코멘트에 \`eyes\` 리액션을 달고 통합 PR 본문 「열린 질문」에 한 줄 남긴 뒤 **PR을 열고 진행한다.** 티켓을 새로 만들지 마라.
    - **애매하다** → 중단한다.
-7. /track ticket 으로 티켓 PR 개설(브랜치는 이미 있다). base = $INTEGRATION.
-8. PR을 연 직후 \`orca worktree set --worktree "path:$WT" --workspace-status in-review\` 를 실행한다.
-9. \`gh pr checks <티켓PR> --watch\` 로 CI 통과 대기 후 \`gh pr merge <티켓PR> $MERGE_FLAG --delete-branch\`.
-10. /track merged 실행. dry-run 요약은 출력으로 남기되 승인 없이 일괄 실행한다.
-11. 소진 표시. 3항에서 읽어 **반영한** 코멘트마다:
+8. /track ticket 으로 티켓 PR 개설(브랜치는 이미 있다). base = $INTEGRATION.
+9. PR을 연 직후 \`orca worktree set --worktree "path:$WT" --workspace-status in-review\` 를 실행한다.
+10. \`gh pr checks <티켓PR> --watch\` 로 CI 통과 대기 후 \`gh pr merge <티켓PR> $MERGE_FLAG --delete-branch\`.
+11. /track merged 실행. dry-run 요약은 출력으로 남기되 승인 없이 일괄 실행한다.
+12. 소진 표시. 3항에서 읽어 **반영한** 코멘트마다:
     \`gh api -X POST repos/$REPO/issues/comments/<id>/reactions -f content=+1\`
     그 내용이 이 티켓에서 끝나지 않고 **트랙 전체에 계속 유효한 사실**이면(계약 확정·설계 판정 등)
     통합 PR 본문 「트랙 결정」 절에 한 줄로 승격한다 — 뒤 티켓은 코멘트가 아니라 그 절을 읽는다.
