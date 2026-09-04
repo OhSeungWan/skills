@@ -36,7 +36,21 @@ scan이 만든 행은 `사람 확인 필요`로 들어온다 — 오탐 검수 �
 
 세 이름은 fix 층 7상태의 부분집합 그대로다 — fix 도입은 status 옵션 4개(`작성 중`·`진행 중`·`리뷰`·`PR 완료`) 추가만으로 업그레이드된다. 확장 상태 머신과 큐 규칙은 [`references/fix.md`](references/fix.md).
 
-## 값 결정 (모든 분기 공통, 맨 먼저)
+## 프리플라이트 (모든 분기 공통, 맨 먼저)
+
+설치·연결 안내는 문서가 아니라 이 점검이 실행 시점에 한다. 분기가 쓰는 MCP만 점검한다 — setup·scan은 셋 다, collect·fix는 Notion만.
+
+| MCP | 점검 | 없을 때 안내하는 정본 커맨드 |
+| --- | --- | --- |
+| Playwright | 도구 목록에 `mcp__*playwright*` | 플러그인 동봉(`plugin.json`의 `mcpServers`)이라 설치는 끝 — 세션 재시작. MCP는 세션 시작 때만 붙는다 |
+| Figma | 도구 있음 + 읽기 호출 1회 성공 | 도구 없음: `/plugin install figma@claude-plugins-official` 후 세션 재시작. 인증 실패: `/mcp`에서 Figma를 골라 `Authenticate` |
+| Notion | 도구 있음 + 읽기 호출 1회 성공 | 도구 없음: `/plugin install notion@claude-plugins-official` 후 세션 재시작. 인증 실패: `/mcp`에서 Notion을 골라 `Authenticate` |
+
+읽기 호출 1회는 `.qa/config.yaml`이 아직 없는 레포(첫 바퀴)에서만 한다 — config가 있으면 도구 유무만 보고, 인증 오류는 실제 호출에서 잡혀도 같은 표로 안내한다. 데스크톱 앱은 `/mcp` 대신 Settings → Connectors, 같은 흐름이다.
+
+하나라도 빠지면 해당 커맨드를 안내하고 **멈춘다**. 분기 몫 전부가 확인됐을 때만 값 결정으로 넘어간다 — 통과는 조용히 지나간다.
+
+## 값 결정 (모든 분기 공통, 프리플라이트 다음)
 
 **모든 값의 1순위는 대상 레포 `.qa/config.yaml`이다.** 필수 키는 둘뿐 — `zone:`과 `figma:`(file_key·page_id). 나머지는 옵션이거나 실행 중 얻어 config에 기록한다. 트랙 참조(통합 PR·티켓 표·스펙 이슈)는 후순위 옵션 — [`references/track-integration.md`](references/track-integration.md).
 
@@ -49,7 +63,7 @@ scan이 만든 행은 `사람 확인 필요`로 들어온다 — 오탐 검수 �
 
 옵션 키: 시트 URL · `storage_state` 경로 · 뷰포트 · 동적 세그먼트 식별자 · 진입/종결 상태 이름 · `oracle:` 블록(트랙 층 — `/oracle` 스킬이 같은 자리를 읽는다).
 
-**scan·setup의 실행 위치는 대상 레포다.** `.qa/`·`.gitignore`·스크린샷 상대 경로가 전부 거기 기준이다. Playwright MCP는 플러그인이 등록하므로(`plugin.json`의 `mcpServers`) 어느 레포에서 켜도 `mcp__*playwright*` 도구가 뜬다. 안 뜨면 세션을 다시 켠다 — MCP는 세션 시작 때만 붙는다.
+**scan·setup의 실행 위치는 대상 레포다.** `.qa/`·`.gitignore`·스크린샷 상대 경로가 전부 거기 기준이다.
 
 ## 시트 스키마
 
