@@ -12,7 +12,7 @@
 
 순서대로. 하나라도 못 넘기면 멈추고 무엇이 없는지 보고한다.
 
-1. `.qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`. 대상 레포 `.claude/settings.local.json`의 `env.PLAYWRIGHT_MCP_STORAGE_STATE`가 있는가 — 없으면 세션 파일이 MCP에 안 닿는다. 위저드(`.agents/qa/qa-session-wizard.sh`)로 안내하고 멈춘다.
+1. `.qa/ledger.yaml`·`config.yaml`이 있는가. 없으면 `setup`. 대상 레포 `.claude/settings.local.json`의 `env.PLAYWRIGHT_MCP_STORAGE_STATE`가 있는가 — 없으면 세션 파일이 MCP에 안 닿는다. 위저드(`<플러그인>/skills/qa/scripts/qa-session-wizard.sh`)로 안내하고 멈춘다.
 2. QA 시트가 있는가. 없으면 `/qa collect`로 안내하고 멈춘다.
 3. **상태 이름을 찾는다.** 시트 스키마를 1회 읽어 `해결 여부`의 타입(`select`·`status` 둘 다 실재)과 옵션 목록을 얻고, **공백을 무시해** 진입 상태 `사람 확인 필요`와 종결 상태 `배포 완료`를 찾아 `config.yaml`에 적는다. 진입 상태를 못 찾으면 지어내지 않고 옵션 목록을 보여 주고 고르게 한다. 종결 상태를 못 찾으면 회귀 검사를 끄되 리포트에 그 사실을 적는다.
 4. **title 프로퍼티를 타입으로 찾는다.** 이름이 `증상`이 아닌 시트가 실재한다.
@@ -26,7 +26,7 @@
 
 1. **`requires`·`stale` 확인.** `requires`의 `config.yaml` 키가 하나라도 비면 화면을 건너뛰고 미커버. `stale`이 적힌 섹션은 그 섹션만 건너뛰고 시안 대기 — 나머지 섹션은 정상으로 돈다. `stale`은 사람이 손으로 적는 값이라서만 이 예외가 안전하다. 실행이 추론해 적지 않는다.
 2. **도달.** `path`로 이동하고 `before` 스텝을 순서대로 — `clickText`(정확 일치, 없으면 접두 일치 유일 요소 — [`setup.md`](setup.md)) · `fillPlaceholder` · `scrollToText`. `forbidden`의 문구는 어떤 경우에도 `clickText` 하지 않는다. 실제 주문을 만드는 버튼이 거기 있다.
-3. **`arrival_text` 확인.** 못 찾으면 이 캡처를 건너뛰고 미커버. 건너뛰기 전에 `document.body.innerText` 앞 300자에 `/Network Error/`·`/로그인|login|sign in/i`를 건다(`verify-shot.mjs`와 같은 검사) — 걸리면 **대장이 아니라 세션·망 문제**로 보고하고 실행을 멈춘다. 안 걸리는 미커버가 연속 3화면이면 그래도 멈춘다 — 세션은 중간에도 만료되고 그 모양이 정확히 미커버다. 멈출 때 무엇을 의심하는지와 어디까지 돌았는지를 함께 보고한다. 세션 갱신은 `.agents/qa/qa-session-wizard.sh`.
+3. **`arrival_text` 확인.** 못 찾으면 이 캡처를 건너뛰고 미커버. 건너뛰기 전에 `document.body.innerText` 앞 300자에 `/Network Error/`·`/로그인|login|sign in/i`를 건다(`verify-shot.mjs`와 같은 검사) — 걸리면 **대장이 아니라 세션·망 문제**로 보고하고 실행을 멈춘다. 안 걸리는 미커버가 연속 3화면이면 그래도 멈춘다 — 세션은 중간에도 만료되고 그 모양이 정확히 미커버다. 멈출 때 무엇을 의심하는지와 어디까지 돌았는지를 함께 보고한다. 세션 갱신은 위저드(전제 확인 1)로.
 4. **프라이밍 스크롤 1회.** 문서 끝까지 훑고 원위치 — lazy-load·진입 애니메이션이 `흐릿함`·`누락` 오탐이 된다.
 5. **짝짓기 게이트.** `match_text` 중 실물 DOM에 나타나는 것이 2개 미만이면 캡처를 건너뛰고 짝짓기 실패. 프라이밍 뒤 DOM에서, 공백·개행을 없앤 뒤 포함 비교, `match_text`는 앞 12자만(실물 말줄임). **여기서 대장을 고치지 않는다** — 시안 변경인지 코드 변경인지 실행은 모른다.
 6. **섹션 촬영.** 순서:

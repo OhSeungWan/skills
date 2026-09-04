@@ -111,7 +111,7 @@ npx playwright open --save-storage="$HOME/.config/qa-scan/storage-state.json" <U
 { "env": { "PLAYWRIGHT_MCP_STORAGE_STATE": "/abs/path/storage-state.json" } }
 ```
 
-셸 `export`로 주지 않는다 — GUI 런처(Orca·데스크톱 앱)로 뜬 Claude Code 는 셸 rc 를 읽지 않아 MCP 서버가 변수를 못 받는다(실측). `.agents/qa/qa-session-wizard.sh` 가 이 과정을 단계별로 안내한다.
+셸 `export`로 주지 않는다 — GUI 런처(Orca·데스크톱 앱)로 뜬 Claude Code 는 셸 rc 를 읽지 않아 MCP 서버가 변수를 못 받는다(실측). `skills/qa/scripts/qa-session-wizard.sh` 가 이 과정을 단계별로 안내한다.
 
 `--isolated` 없이 세션 파일만 주면 **에러 없이 조용히 무시된다**(뷰포트는 먹고 쿠키만 빈다).
 `--grant-permissions local-network-access`가 없으면 Chrome이 사설망 API 요청을 자동 거부해 앱이 `Network Error`만 그린다 — 앱 셸은 정상 렌더되므로 스크린샷만 보면 "화면은 떴다"로 읽힌다.

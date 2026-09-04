@@ -179,6 +179,6 @@ before:
 
 ## 세션 파일
 
-`.agents/qa/qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → `.claude/settings.local.json` `env` 등록(셸 export 는 선택) → 세션 재시작. 만료는 수동 갱신.
+`<플러그인>/skills/qa/scripts/qa-session-wizard.sh` — 브라우저 확인 → 파일 자리·gitignore 검사 → 헤디드 로그인·덤프 → MCP로 검증 촬영 → `.claude/settings.local.json` `env` 등록(셸 export 는 선택) → 세션 재시작. 만료는 수동 갱신.
 
-검증은 CLI가 아니라 MCP 표면에서 한다 — CLI `playwright screenshot`에는 `--grant-permissions`가 없어 앱이 `Network Error`만 그린다. `.agents/qa/verify-shot.mjs`가 같은 플래그로 한 장 찍고 실패 모양을 종료코드로 알린다.
+검증은 CLI가 아니라 MCP 표면에서 한다 — CLI `playwright screenshot`에는 `--grant-permissions`가 없어 앱이 `Network Error`만 그린다. `<플러그인>/skills/qa/scripts/verify-shot.mjs`(위저드 4단계가 부른다)가 같은 플래그로 한 장 찍고 실패 모양을 종료코드로 알린다.
