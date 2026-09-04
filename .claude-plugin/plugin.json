@@ -1,6 +1,6 @@
 {
   "name": "seungwan-skills",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "인지부채 해소 도구 grok, 트랙 라이프사이클 track, 무인 티켓 러너 grind, 트랙 QA 루프 우산 qa(setup·scan·collect·fix — 시안 대조 scan 포함), QA 정답지 갱신 oracle, 워크트리 공유 문서 스토어 shared-store, FE↔BE 스레드 추적 tiki-taka — 개인 스킬 모음.",
   "author": {
     "name": "OhSeungWan",

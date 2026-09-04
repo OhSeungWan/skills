@@ -1,5 +1,7 @@
 # 플로우 검사의 정답지는 오라클 ④ 화면 기대의 확정 항목만이다
 
+> Superseded by [ADR-0005](./0005-flow-answer-key-is-single-human-confirmed-source.md) — 출처를 "사람 확정 게이트를 거친 단일 출처"로 일반화.
+
 `/qa scan` 에 붙을 플로우 검사(조작 → URL·상태 단언, [#22](https://github.com/OhSeungWan/skills/issues/22))의 기대값은 **오라클 ④ 화면 기대 층의 `확정` 항목에서만** 온다. 시안(피그마)이 폴리싱의 정답지이듯 오라클이 로직의 정답지다 — 기대값의 출처가 하나여야 실패가 곧 결함이다.
 
 경계 네 개가 이 결정의 본체다:
