@@ -7,7 +7,7 @@ description: BMAD 프로젝트 하나를 조사→기획→구현(bmad-loop)→�
 
 BMAD 스킬 체인 전체를 **사람 없이** 돈다. 세션 1개 = 큰 단계 1개. 세션이 끝나면 셸 루프가 5분 뒤 새 세션을 띄우고, 새 세션은 `STATUS.md`만 읽고 이어받는다.
 
-**이 스킬의 존재 이유는 컨텍스트다.** 기획 문서 6개와 스토리 60개를 한 세션에서 이어 하면 요약(compaction)이 몇 번 일어나고 앞서 정한 값이 흐려진다. `grind`가 티켓 단위로 하는 일을 프로젝트 전체 단위로 한다.
+**이 스킬의 존재 이유는 컨텍스트다.** 기획 문서 6개와 스토리 60개를 한 세션에서 이어 하면 요약(compaction)이 몇 번 일어나고 앞서 정한 값이 흐려진다.
 
 **성립 근거는 셋이다.** ⑴ `STATUS.md` 첫 줄 `STATE:`와 단계 표가 상태 저장소다. ⑵ 구현 구간은 `bmad-loop`이 스토리마다 새 세션을 띄우므로 감시 세션은 이벤트 처리만 한다. ⑶ 사람 몫(계정·결제·서명)은 `HUMAN_TODO.md`로 분리해 그것에 의존하지 않는 일을 계속한다.
 
@@ -78,7 +78,7 @@ pgrep -f "bash ./autopilot.sh" || caffeinate -i nohup ./autopilot.sh > /dev/null
 - **에픽 게이트는 정지가 아니라 pause다.** policy `gates = per-epic`면 에픽 끝에 엔진이 멈추고 감시 세션이 sweep·retrospective 후 resume한다. 프롬프트에 명시 안 하면 "run이 안 살아있음 → resume"으로 우회 해석돼 sweep을 건너뛴다.
 - **bmad-loop 실행 중에 tool을 업그레이드하지 마라.** `uv tool install --force`가 venv 파일을 바꿔치기해 도는 엔진 python이 깨질 수 있다. 하려면 에픽 게이트에서 `pkill -f autopilot.sh` → 업그레이드 → `bmad-loop init --force-skills` → `resume` → 루프 재기동. 안 올려도 되면 안 올린다.
 - **첫 스토리가 도구 설치일 수 있다.** 실측: Flutter·fastlane이 없어서 스토리 1-1이 FVM 설치부터. Xcode·Android SDK처럼 GUI 설치가 필요한 건 setup 때 사람이 미리 깔아야 한다. `xcode-select -p`, `$ANDROID_HOME`으로 실측.
-- **감시 세션마다 MCP 인증 경고가 붙는다.** `claude.ai *` 커넥터는 헤드리스에 안 붙는다(grind와 같은 함정). 무해하지만 로그에 매번 찍힌다.
+- **감시 세션마다 MCP 인증 경고가 붙는다.** `claude.ai *` 커넥터는 헤드리스에 안 붙는다(대화형 인증이라서다). 무해하지만 로그에 매번 찍힌다.
 - **실행 중인 `autopilot.sh`를 in-place로 고치지 마라.** bash가 파일을 이어 읽는다. 루프는 매 반복 `cat AUTOPILOT.md`를 새로 읽으므로 **프롬프트 수정은 즉시 반영**되지만 스크립트 수정은 재기동해야 한다.
 - **세션 수 ≠ 진행.** 감시 세션은 "이벤트 없음 → 종료"를 5분마다 반복하므로 Phase 2에선 세션 수만 늘고 STATUS는 안 바뀐다. 진행은 `bmad-loop status`의 done 수로 본다.
 - **토큰 규모.** 실측: 스토리당 weighted 100~140만 토큰, 스토리 61개. 시작 전에 사용자에게 자릿수를 말한다.
