@@ -118,6 +118,21 @@ FE 레포든 BE 레포든 같은 절차다 — 원장의 `side`·`ours`가 우�
 
 정본은 스레드고 원장은 그림자다. `applied`는 코드에서 근거를 찾아야만 붙는다 — 기억으로 붙이지 않는다.
 
+### autopilot — BMAD 프로젝트 무인 완주
+
+조사 → 기획(brief·PRD·UX·아키텍처·스토리·sprint-planning) → 구현(bmad-loop) → 검증 → 출시 준비를 **사람 없이** 끝까지 민다.
+`grind`가 티켓 단위로 하는 걸 프로젝트 단위로 한다: 세션 1개 = 큰 단계 1개, 셸 루프가 `claude -p`를 반복 띄우고 새 세션은 `STATUS.md`만 읽고 이어받는다.
+
+| 호출 | 시점 | 하는 일 |
+|---|---|---|
+| `/autopilot setup` | 처음 | 프롬프트 골격을 프로젝트에 맞게 채우고 `autopilot.sh` 배치, 전제(BMAD·bmad-loop·trust dialog) 실측 |
+| `/autopilot status` | 도는 중 | STATUS.md 단계 표 · 마지막 세션 출력 · `bmad-loop status` |
+| `/autopilot resume` | 루프가 죽었을 때 | 같은 명령 재실행. 상태가 파일에 있어 이어받는다 |
+
+사람 몫(계정·결제·서명·심사 제출)은 `HUMAN_TODO.md`로 분리되고, 그것에 의존하지 않는 일은 계속 돈다.
+CRITICAL 에스컬레이션도 감시 세션이 PRD·아키텍처를 근거로 스스로 결정하고 ADR을 남긴다.
+같은 단계 3회 실패면 `STATE: BLOCKED_ON_HUMAN`으로 멈춘다. 완성 예시는 `skills/autopilot/examples/mobile-game-3x.md`.
+
 ## MCP 서버
 
 `.mcp.json`에 Playwright MCP를 선언해 둔다(`--isolated --headless --viewport-size=390x844 --grant-permissions local-network-access`).
