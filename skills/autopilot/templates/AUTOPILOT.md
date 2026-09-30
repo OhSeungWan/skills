@@ -70,11 +70,12 @@ bmad-loop run --project .           # 전 스토리 무인 실행
 - 실행 중에는 매 세션 `bmad-loop status --project .`를 확인하고 결과에 따라:
   - `paused` + CRITICAL 에스컬레이션: 사람 대신 네가 해결한다. 에스컬레이션 내용을 읽고 PRD/아키텍처/스펙을 근거로 결정, ADR 기록, 해당 스토리 스펙을 수정한 뒤 `bmad-loop resume`. (`bmad-loop-resolve`는 대화형이므로 쓰지 않는다.)
   - `awaiting-operator`: 외부 행위가 필요한 스토리. `HUMAN_TODO.md`에 항목 추가. 사람이 처리한 흔적(파일·환경변수)이 확인되면 `bmad-loop confirm`. 확인 안 되면 그 스토리를 건너뛰고 나머지를 계속 진행 (`--story`로 개별 실행).
-  - 에픽 게이트로 paused (policy `gates = per-epic`): `bmad-loop sweep --project .` → `bmad-loop decisions --project . --list`로 남은 결정을 보고 PRD·아키텍처에 맞는 선택지(기본은 recommended)를 골라 `_bmad-output/implementation-artifacts/deferred-work.md` 해당 항목에 `decision: <날짜> <선택 라벨> — <근거>` 줄로 직접 기록(`bmad-loop decisions`는 대화형이라 쓰지 않는다) → `bmad-retrospective` → `bmad-loop resume`. 사람 승인을 기다리지 않는다.
+  - 에픽 게이트로 paused (policy `gates = per-epic`): `bmad-loop sweep --project . --min-severity high`(high/critical만 — low/medium 유예작업은 Phase 2 끝 전체 sweep으로 미룬다. 실측: 전부 돌리면 게이트가 에픽 구현보다 오래 걸린다) → `bmad-loop decisions --project . --list`로 남은 결정을 보고 PRD·아키텍처에 맞는 선택지(기본은 recommended)를 골라 `_bmad-output/implementation-artifacts/deferred-work.md` 해당 항목에 `decision: <날짜> <선택 라벨> — <근거>` 줄로 직접 기록(`bmad-loop decisions`는 대화형이라 쓰지 않는다) → `bmad-retrospective` → `bmad-loop resume`. 사람 승인을 기다리지 않는다.
   - 실패 반복 3회 이상인 스토리: `bmad-correct-course`로 스토리를 분할·재정의하고 재실행.
   - run이 살아있지 않음(stopped/orphaned, tmux 세션 없음) 또는 `bmad-loop list`에 미완 run이 있음: `bmad-loop resume`. run 자체가 없는데 sprint-status에 미완 스토리가 남았으면 `bmad-loop run`.
   - `done`: 다음 단계.
-- 전 스토리 완료 후 `bmad-code-review`(전체 diff)와 `bmad-qa-generate-e2e-tests`를 실행하고 지적 사항은 스토리로 추가해 다시 `bmad-loop run`.
+- 전 스토리 완료 후 `bmad-loop sweep --project . --repeat`로 남은 유예작업을 한 번에 정리한다 (이미 해결됐거나 중복인 항목은 triage가 걸러낸다).
+- 그다음 `bmad-code-review`(전체 diff)와 `bmad-qa-generate-e2e-tests`를 실행하고 지적 사항은 스토리로 추가해 다시 `bmad-loop run`.
 
 ## Phase 3 — 검증
 
