@@ -23,6 +23,7 @@ App Store와 Google Play에 실제 출시하는 모바일 게임 **3종**을 순
 - **세션 하나는 큰 단계 하나만** 수행하고 종료한다 (예: Phase 1의 PRD 작성 하나, Phase 2의 `bmad-loop run` 감시 하나). 끝나면 "다음 세션에서 계속"이라고 STATUS.md에 적고 세션을 끝낸다. 더 할 수 있어도 이어서 하지 않는다.
 - 결정 근거는 대화가 아니라 파일(`docs/decisions/`, planning-artifacts)에만 의존한다. 이전 세션의 대화 내용을 기억한다고 가정하지 않는다.
 - **비대화형(`claude -p`) 세션이므로 텍스트 응답으로 턴을 끝내는 순간 프로세스가 종료된다.** 서브에이전트나 백그라운드 작업이 남아 있는 동안 "기다리겠다"는 텍스트로 턴을 끝내지 않는다. 대신 산출물 파일이 생길 때까지 Bash로 폴링한다 (예: `until [ -f 경로 ]; do sleep 30; done`, timeout 넉넉히). 완료 알림이 오면 이어서 진행한다. 세션을 끝내는 텍스트는 STATUS.md 갱신·commit을 마친 뒤에만 낸다.
+- 프로세스 종료를 기다릴 때 `pgrep -f "문자열"`을 쓰지 않는다 — 폴링 명령 자신이 그 문자열을 포함해 영원히 매칭된다. `bmad-loop list --project .`의 STATUS나 `bmad-loop status`로 판단하거나, 꼭 pgrep이면 `pgrep -f "[b]mad-loop sweep"`처럼 자기매칭을 피한다.
 - 이미 존재하는 산출물(연구 보고서, 문서, 코드)은 재생성하지 않고 읽어서 이어간다. 재시도는 빠진 부분만 채운다.
 - 긴 출력(빌드 로그, 시뮬레이터 로그, 테스트 결과)은 파일로 리다이렉트하고 `tail`·`grep`으로 결정적인 줄만 읽는다.
 - Phase 2 감시: `bmad-loop status`를 확인해 처리할 이벤트가 없으면 아무것도 하지 말고 세션을 종료한다. 재기동은 바깥 루프가 한다. `/loop`는 쓰지 않는다.
@@ -106,14 +107,13 @@ bmad-loop validate --project .      # 실패 항목은 고치고 재실행, 통�
 bmad-loop run --project .           # 전 스토리 무인 실행
 ```
 
-- 실행 중에는 `/loop 10m` 으로 `bmad-loop status --project .`를 폴링한다. 폴링 결과에 따라:
+- 실행 중에는 매 세션 `bmad-loop status --project .`를 확인하고 결과에 따라:
   - `paused` + CRITICAL 에스컬레이션: 사람 대신 네가 해결한다. 에스컬레이션 내용을 읽고 PRD/아키텍처/스펙을 근거로 결정, ADR 기록, 해당 스토리 스펙을 수정한 뒤 `bmad-loop resume`. (`bmad-loop-resolve`는 대화형이므로 쓰지 않는다.)
   - `awaiting-operator`: 외부 행위가 필요한 스토리. `HUMAN_TODO.md`에 항목 추가. 사람이 처리한 흔적(파일·환경변수)이 확인되면 `bmad-loop confirm`. 확인 안 되면 그 스토리를 건너뛰고 나머지를 계속 진행 (`--story`로 개별 실행).
   - 실패 반복 3회 이상인 스토리: `bmad-correct-course`로 스토리를 분할·재정의하고 재실행.
   - 에픽 게이트로 paused (policy `gates = per-epic`): `bmad-loop sweep --project . --min-severity high`(high/critical만 — low/medium 유예작업은 Phase 2 끝 전체 sweep으로 미룬다. 실측: 전부 돌리면 게이트가 에픽 구현보다 오래 걸린다) → `bmad-loop decisions --project . --list`로 남은 결정을 보고 PRD·아키텍처에 맞는 선택지(기본은 recommended)를 골라 `_bmad-output/implementation-artifacts/deferred-work.md` 해당 항목에 `decision: <날짜> <선택 라벨> — <근거>` 줄로 직접 기록(`bmad-loop decisions`는 대화형이라 쓰지 않는다) → `bmad-retrospective` → `bmad-loop resume`. 사람 승인을 기다리지 않는다.
   - `done`: 다음 단계.
   - run이 살아있지 않음(stopped/orphaned, tmux 세션 없음) 또는 `bmad-loop list`에 미완 run이 있음: `bmad-loop resume`. run 자체가 없는데 sprint-status에 미완 스토리가 남았으면 `bmad-loop run`.
-- 에픽 하나가 끝날 때마다 `bmad-loop sweep --project .`으로 유예 작업 정리, `bmad-retrospective`로 교훈을 AGENTS.md에 반영.
 - 전 스토리 완료 후 `bmad-loop sweep --project . --repeat`로 남은 유예작업을 한 번에 정리한다 (이미 해결됐거나 중복인 항목은 triage가 걸러낸다).
 - 그다음 `bmad-code-review`(전체 diff)와 `bmad-qa-generate-e2e-tests`를 실행하고 지적 사항은 스토리로 추가해 다시 `bmad-loop run`.
 
